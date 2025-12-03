@@ -1,8 +1,30 @@
 ---
 permalink: /about/
-title: "About"
+title: "About Me"
 ---
 
-Tempor velit sint sunt ipsum tempor enim ad qui ullamco. Est dolore anim ad velit duis dolore minim sunt aliquip amet commodo labore. Ut eu pariatur aute ea aute excepteur laborum. Esse ea esse excepteur minim mollit qui cillum excepteur ex dolore magna. Labore deserunt fugiat incididunt incididunt sint ea. Consequat dolore aute laboris quis proident quis non et est consectetur ex eiusmod sit culpa.
+Welcome to my personal website! I am **Yiwei Chen**, a researcher dedicated to advancing knowledge through rigorous academic inquiry and innovative problem-solving.
 
-Cupidatat ea do et in excepteur in. Ad nostrud ut est esse eu duis ea sunt eiusmod. Aliquip tempor veniam sint elit fugiat. Velit incididunt laboris amet incididunt labore dolore irure velit excepteur commodo deserunt laborum. Consectetur eu fugiat veniam veniam Lorem labore magna eiusmod. Ea occaecat reprehenderit pariatur consectetur minim labore ut aliquip.
+## Background
+
+I am passionate about exploring interdisciplinary approaches to complex problems. My academic journey has taken me through various institutions where I have honed my research skills and developed expertise in my field.
+
+## Research Focus
+
+My research interests span across multiple domains, combining theoretical foundations with practical applications. I believe in the power of collaboration and open science to drive meaningful discoveries.
+
+## Professional Goals
+
+I am committed to:
+- Conducting impactful research that addresses real-world challenges
+- Sharing knowledge through publications and academic discourse
+- Mentoring the next generation of researchers
+- Building bridges between academia and industry
+
+## Get in Touch
+
+I welcome collaboration opportunities, research discussions, and academic partnerships. Feel free to reach out through my social media links or email.
+
+---
+
+*This website showcases my academic journey, research interests, and publications. Explore the navigation menu to learn more about my work.*
