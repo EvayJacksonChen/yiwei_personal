@@ -25,8 +25,8 @@ twitter_username: YiweiJacksonChen
 github_username: EvayJacksonChen
 minimal_mistakes_skin: default
 search: true
-# url: "https://yiweichen.org" # the base hostname & protocol for your site. Ex: https://example.com
-# baseurl: "" # the subpath of your site, e.g. /blog. If you are not using a subpath, leave this blank.
+url: "https://yiweichen.org"
+baseurl: ""
 repository: "EvayJacksonChen/yiwei_personal"
 # Build settings
 markdown: kramdown
