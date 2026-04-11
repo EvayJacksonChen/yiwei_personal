@@ -65,7 +65,7 @@ plugins:
   - jekyll-seo-tag
 
 author:
-  name   : "Yiwei Jackson Chen (陈奕玮)"
+  name   : "Yiwei Chen (陈奕玮)"
   avatar : "/assets/images/bio-photo.jpg"
   bio    : "I am a PhD student on machine learning and computer vision at \nthe department of CSE, HKUST."
   links:
