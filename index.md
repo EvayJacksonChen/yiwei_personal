@@ -4,8 +4,6 @@ author_profile: true
 title: "Yiwei Jackson Chen - PhD Student at CSE, HKUST""
 ---
 
-## Hello! Welcome to visit my website!
-
 I am CHEN, Yiwei (Jackson), a second year PhD student in Department of Computer Science and Engineering (CSE), The Hong Kong University of Science and Technology (HKUST), Hong Kong SAR, China. 
 
 ### Research Interests
