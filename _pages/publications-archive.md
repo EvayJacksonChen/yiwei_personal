@@ -5,10 +5,6 @@ permalink: /publications/
 author_profile: True
 ---
 
-## **Publications**
-
-
-
 MaskGuide: Efficient Distillation for Deployable Lightweight Segmentation in Marine Environments
 
 Xinrui Wu, Ziqiang Zheng, **Yiwei Chen**, Zeyu Ma, Yang Yang, Sai-Kit Yeung
