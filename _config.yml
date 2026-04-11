@@ -70,7 +70,7 @@ author:
     - label: "Website"
       icon: "fas fa-fw fa-link"
       url: "https://yiweichen.org"
-    - email: "ychenmb[AT]connect.ust.hk"
+    - label: "Email"
       icon: "fas fa-fw fa-envelope"
       url: "mailto:ychenmb[AT]connect.ust.hk"
     - label: "Twitter"
