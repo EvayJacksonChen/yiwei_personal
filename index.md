@@ -29,7 +29,6 @@ If you are interested in my research field or looking for any prospective collab
 - 2026 - : Stay tuned..
 - 2026/03: MaskGuide got accepted by RA-L!
 - 2025/12: Orca got accepted by WACV 2026 (**Oral**)! 🎉🎉🎉
-
 - 2024/09: Started PhD at HKUST
 - 2024/08: MarineInst got **Oral** Presentation Award in ECCV 2024! 🎉🎉🎉
 - 2024/07: MarineInst got accepted by ECCV 2024! 
