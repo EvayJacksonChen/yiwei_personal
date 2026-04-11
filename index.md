@@ -1,7 +1,7 @@
 ---
 layout: single
 author_profile: true
-title: " "
+title: "Yiwei Jackson Chen - PhD Student at CSE, HKUST""
 ---
 
 ## Hello! Welcome to visit my website!

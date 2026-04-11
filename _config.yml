@@ -13,10 +13,11 @@
 # you will see them accessed via {{ site.title }}, {{ site.email }}, and so on.
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
-title: "Welcome to Yiwei's Site!"
+title: "Yiwei Jackson Chen"
+subtitle: "PhD student at CSE, HKUST | Machine Learning & Computer Vision"
 email: ychenmb[AT]connect.ust.hk
 description: # >- # this means to ignore newlines until "baseurl:"
-  Personal website of Yiwei Chen, a PhD student at the Hong Kong University of Science and Technology (HKUST). 
+  Personal website of Yiwei Jackson Chen (陈奕玮), a PhD student at the Hong Kong University of Science and Technology (HKUST). 
   I am interested in machine learning, computer vision, and their applications in solving real-world complex problems, e.g., marine research, biodiversity monitoring, etc. 
   I am currently working on my PhD thesis under the supervision of Prof. Sai-Kit Yeung. In this website, I will share my research work, publications, and other academic activities. 
   Feel free to explore and connect with me!
@@ -61,9 +62,10 @@ plugins:
   - jekyll-feed
   - jemoji
   - jekyll-include-cache
+  - jekyll-seo-tag
 
 author:
-  name   : "Yiwei Jackson Chen"
+  name   : "Yiwei Jackson Chen (陈奕玮)"
   avatar : "/assets/images/bio-photo.jpg"
   bio    : "I am a PhD student on machine learning and computer vision at \nthe department of CSE, HKUST."
   links:
