@@ -122,6 +122,10 @@ defaults:
       layout: single
       author_profile: true
 
+biography:
+  type: liquid
+  path: /biography/
+
 publications_archive:
   type: liquid
   path: /publications/

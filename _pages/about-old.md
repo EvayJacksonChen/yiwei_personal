@@ -3,7 +3,7 @@ permalink: /about-old/
 title: "Biography"
 ---
 
-## Hello! Welcome to visit my website!
+
 
 I am CHEN, Yiwei (Jackson), a second year PhD student in Department of Computer Science and Engineering (CSE), The Hong Kong University of Science and Technology (HKUST), Hong Kong SAR, China. My research interest lies in broad computer vision recognition tasks and multi-modality learning & understanding, and their applications in solving complicated real-world problems, e.g., marine research, biodiversity monitoring, biology field study, etc. At HKUST, I am working very closely with Prof. Ziqiang ZHENG (from UESTC) and Prof. Sai-Kit YEUNG. Before PhD study, I obtained my Master of Science degree in Information Technology at HKUST and Bachelor of Engineering degree in Telecommunications at School of Electronic Information and Communications (EIC), Huazhong University of Science and Technology (HUST), Wuhan, China. During my undergraduate study in HUST, I participated in the College Students' Innovative Entrepreneurial Training Plan Program of Prof. Xiaojun HEI and completed my Final Year Project (FYP) under the supervision of Prof. Xinggang WANG.
 
