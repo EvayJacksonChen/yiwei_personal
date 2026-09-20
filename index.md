@@ -21,7 +21,7 @@ I am CHEN, Yiwei, a third year PhD student in Department of Computer Science and
 
 ### Research Interests
 
-My research interest lies in broad computer vision recognition tasks and multi-modality learning & understanding, and their applications in solving complicated real-world problems, e.g., marine research, biodiversity monitoring, biology field study, etc. At HKUST, I am working very closely with Prof. Ziqiang ZHENG (from UESTC) and warmly supervised by Prof. Sai-Kit YEUNG. 
+My research interest lies in generic computer vision techniques for marine scenarios and biology study. Besides vision recognition tasks, I am also exploring the intersected problems between 2D and 3D vision. At HKUST, I am working very closely with Prof. [Ziqiang ZHENG](https://zhengziqiang.github.io/) (UESTC) and warmly supervised by Prof. [Sai-Kit YEUNG](http://saikit.org/). 
 
 ### Education
 
@@ -31,19 +31,23 @@ My research interest lies in broad computer vision recognition tasks and multi-m
 
 ***Huazhong University of Science and Technology***  *B.Eng. in Telecommunications, 2019 - 2023*
 
-Before PhD study, I obtained my Master of Science degree in Information Technology at HKUST and Bachelor of Engineering degree in Telecommunications at School of Electronic Information and Communications (EIC), Huazhong University of Science and Technology (HUST), Wuhan, China. During my undergraduate study in HUST, I participated in the College Students' Innovative Entrepreneurial Training Plan Program of Prof. Xiaojun HEI and completed my Final Year Project (FYP) under the supervision of Prof. Xinggang WANG.
+Before PhD study, I obtained my Master of Science degree in Information Technology at HKUST and Bachelor of Engineering degree in Telecommunications at School of Electronic Information and Communications (EIC), Huazhong University of Science and Technology (HUST), Wuhan, China. During my undergraduate study in HUST, I participated in the College Students' Innovative Entrepreneurial Training Plan Program of Prof. [Xiaojun HEI](english.eic.hust.edu.cn/info/1017/1124.htm) and completed my Final Year Project (FYP) under the supervision of Prof. [Xinggang WANG](https://xwcv.github.io/).
 
 If you are interested in my research field or looking for any prospective collaboration, please feel free to reach me out via [email](jackson.chen.yiwei@gmail.com).
 
-### TA Experience
+### Teaching Assistant Experience
 
 - Spring 2025, COMP 2211 Exploring Artificial Intelligence, HKUST
 - Fall 2025, COMP 2211 Exploring Artificial Intelligence, HKUST
 - Fall 2025, MSBD 6000Q Vision Language Models for Vision Tasks, HKUST
 
+### Visiting Experience
+
+- August -- November 2026, visit student @ UESTC, Chengdu, China
+
 ### Awards
 
-- Outstanding PG Teaching Assistant Honorable Mention
+- **Outstanding PG Teaching Assistant Honorable Mention** (academic year 2025-26)
 
 <img src="/assets/images/outstanding-pg-ta-honorable-mention.png" alt="Outstanding PG Teaching Assistant Honorable Mention certificate, HKUST Department of Computer Science and Engineering" style="max-width: 560px; width: 100%; height: auto; border: 1px solid #e5e5e5; border-radius: 4px;">
 
