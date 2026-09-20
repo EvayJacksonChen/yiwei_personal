@@ -17,7 +17,7 @@ share_title: "Yiwei Jackson Chen | Marine Vision & Bio-Intelligence | PhD Studen
 
 ### About Me
 
-I am CHEN, Yiwei (陈奕玮), a second year PhD student in Department of Computer Science and Engineering (CSE), The Hong Kong University of Science and Technology (HKUST), Hong Kong SAR, China. 
+I am CHEN, Yiwei, a third year PhD student in Department of Computer Science and Engineering (CSE), The Hong Kong University of Science and Technology (HKUST), Hong Kong SAR, China. 
 
 ### Research Interests
 
