@@ -21,7 +21,7 @@ I am CHEN, Yiwei, a third year PhD student in Department of Computer Science and
 
 ### Research Interests
 
-My research interest lies in generic computer vision techniques for marine scenarios and biology study. Besides vision recognition tasks, I am also exploring the intersected problems between 2D and 3D vision. At HKUST, I am working very closely with Prof. [Ziqiang ZHENG](https://zhengziqiang.github.io/) (UESTC) and warmly supervised by Prof. [Sai-Kit YEUNG](http://saikit.org/). 
+My research interest lies in generic computer vision techniques for marine and biology studies. Besides vision recognition tasks, I am also exploring the intersected problems between 2D and 3D vision. At HKUST, I am working very closely with Prof. [Ziqiang ZHENG](https://zhengziqiang.github.io/) (UESTC) and warmly supervised by Prof. [Sai-Kit YEUNG](http://saikit.org/). 
 
 ### Education
 
