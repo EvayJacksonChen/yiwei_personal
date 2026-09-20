@@ -27,6 +27,18 @@ Before PhD study, I obtained my Master of Science degree in Information Technolo
 
 If you are interested in my research field or looking for any prospective collaboration, please feel free to reach me out via [email](jackson.chen.yiwei@gmail.com).
 
+### TA Experience
+
+- Spring 2025, COMP 2211 Exploring Artificial Intelligence
+- Fall 2025, COMP 2211 Exploring Artificial Intelligence
+- Fall 2025, MSBD 6000Q Vision Language Models for Vision Tasks
+
+### Awards
+
+- Outstanding PG Teaching Assistant Honorable Mention
+
+<img src="/assets/images/outstanding-pg-ta-honorable-mention.png" alt="Outstanding PG Teaching Assistant Honorable Mention certificate, HKUST Department of Computer Science and Engineering" style="max-width: 560px; width: 100%; height: auto; border: 1px solid #e5e5e5; border-radius: 4px;">
+
 ### News
 
 - 2026 - : Stay tuned..
