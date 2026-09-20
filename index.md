@@ -2,6 +2,7 @@
 layout: single
 author_profile: true
 title: "Hello, welcome to my website!"
+seo_title: "Yiwei Jackson Chen | Marine Vision & Bio-Intelligence | PhD Student | CSE | HKUST"
 ---
 
 
