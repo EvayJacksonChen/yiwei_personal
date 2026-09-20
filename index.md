@@ -37,9 +37,9 @@ If you are interested in my research field or looking for any prospective collab
 
 ### TA Experience
 
-- Spring 2025, COMP 2211 Exploring Artificial Intelligence
-- Fall 2025, COMP 2211 Exploring Artificial Intelligence
-- Fall 2025, MSBD 6000Q Vision Language Models for Vision Tasks
+- Spring 2025, COMP 2211 Exploring Artificial Intelligence, HKUST
+- Fall 2025, COMP 2211 Exploring Artificial Intelligence, HKUST
+- Fall 2025, MSBD 6000Q Vision Language Models for Vision Tasks, HKUST
 
 ### Awards
 
