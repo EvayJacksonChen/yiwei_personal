@@ -1,11 +1,19 @@
 ---
 layout: single
 author_profile: true
-title: "Hello, welcome to my website!"
-seo_title: "Yiwei Jackson Chen | Marine Vision & Bio-Intelligence | PhD Student | CSE | HKUST"
+seo_title: "Yiwei Chen"
+share_title: "Yiwei Jackson Chen | Marine Vision & Bio-Intelligence | PhD Student | CSE | HKUST"
 ---
 
-
+{%- assign hk_hour = site.time | date: "%H" | plus: 0 -%}
+{%- if hk_hour >= 5 and hk_hour < 12 -%}
+  {%- assign greeting = "Good morning!" -%}
+{%- elsif hk_hour >= 12 and hk_hour < 18 -%}
+  {%- assign greeting = "Good afternoon!" -%}
+{%- else -%}
+  {%- assign greeting = "Good evening!" -%}
+{%- endif -%}
+<h1 id="greeting" class="page__title" itemprop="headline">{{ greeting }}</h1>
 
 ### About Me
 

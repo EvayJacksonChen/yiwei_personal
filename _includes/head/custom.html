@@ -10,4 +10,27 @@
   }
 </style>
 
+<!-- Adapt the homepage greeting to the visitor's local time zone.
+     The server renders a UTC+8 (Asia/Hong_Kong) greeting by default; this
+     rewrites it based on the visitor's own clock when JavaScript is available. -->
+<script>
+  (function () {
+    function timeGreeting(hour) {
+      if (hour >= 5 && hour < 12) { return "Good morning!"; }
+      if (hour >= 12 && hour < 18) { return "Good afternoon!"; }
+      return "Good evening!";
+    }
+    function applyGreeting() {
+      var el = document.getElementById("greeting");
+      if (!el) { return; }
+      el.textContent = timeGreeting(new Date().getHours());
+    }
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", applyGreeting);
+    } else {
+      applyGreeting();
+    }
+  })();
+</script>
+
 <!-- end custom head snippets -->
