@@ -513,6 +513,7 @@
     const day = setupDay(function () { return reduced; });
     const lights = setupLights(function () { return reduced; });
     const sea = setupSea(function () { return reduced; });
+    const rainbow = setupRainbow(function () { return reduced; });
     const cursor = setupCursor(function () { return reduced; });
     const creatures = setupCreatures(lights, function () { return reduced; });
     setupNav();
@@ -526,6 +527,7 @@
         day.tick(now);
         lights.tick(dt, now);
         sea.tick(dt, now);
+        rainbow.tick(now);
         cursor.tick(dt, now);
         creatures.tick(dt, now);
       } catch (err) {
@@ -552,6 +554,54 @@
     const canvas = document.createElement("canvas");
     paint(canvas, rows);
     return canvas;
+  }
+
+  function setupRainbow(isReduced) {
+    const canvas = document.getElementById("rainbow");
+    if (!canvas) return { tick: function () {} };
+    const ctx = canvas.getContext("2d");
+    const colors = ["#e07b86", "#e6a15c", "#e6d36a", "#7dbe78", "#6eb0d4", "#9a8fd4"];
+    let sized = false;
+
+    function fit() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = Math.max(1, Math.floor(rect.width * dpr));
+      const h = Math.max(1, Math.floor(rect.height * dpr));
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      sized = rect.width > 0;
+    }
+
+    window.addEventListener("resize", fit);
+
+    return {
+      tick: function (now) {
+        fit();
+        if (!sized) return;
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        ctx.clearRect(0, 0, w, h);
+        const step = 8;
+        const phase = isReduced() ? 0 : now / 220;
+        for (let band = 0; band < 4; band++) {
+          for (let i = 0; i <= w - step; i += step) {
+            const t = i / w;
+            const arch = Math.sin(t * Math.PI);
+            const shimmer = isReduced() ? 0 : Math.sin(now / 380 + i * 0.08) * 1.2;
+            const y = h - 10 - arch * (h * 0.72) + band * 5 + shimmer;
+            const index = Math.floor(t * colors.length * 2 + phase + band) % colors.length;
+            ctx.globalAlpha = 0.9 - band * 0.12;
+            ctx.fillStyle = colors[(index + colors.length) % colors.length];
+            ctx.fillRect(i, y, step - 2, 4);
+          }
+        }
+        ctx.globalAlpha = 1;
+      }
+    };
   }
 
   function setupSea(isReduced) {
