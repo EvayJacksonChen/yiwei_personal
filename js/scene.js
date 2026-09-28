@@ -236,6 +236,273 @@
     }
   ];
 
+  const DAY_MARKS = {
+    morning: [
+      grid([
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
+        ".......y........",
+        "......yyy.......",
+        ".....yyyyy......",
+        ".....ycyyy......",
+        "......yyy.......",
+        ".......y........",
+        "................",
+        "................",
+        "................",
+        "................",
+        "................"
+      ]),
+      grid([
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
+        "......y.y.......",
+        ".......y........",
+        ".....yyyyy......",
+        ".....ycyyy......",
+        ".......y........",
+        "......y.y.......",
+        "................",
+        "................",
+        "................",
+        "................",
+        "................"
+      ])
+    ],
+    afternoon: [
+      grid([
+        "................",
+        ".......y........",
+        "....y..y..y.....",
+        "......yyyy......",
+        ".y...yyyyyy...y.",
+        ".....yyyyyyy....",
+        ".y..yyyyyyyy..y.",
+        ".....yyyyyyy....",
+        ".y...yyyyyy...y.",
+        "......yyyy......",
+        "....y..y..y.....",
+        ".......y........",
+        "................",
+        "................",
+        "................",
+        "................"
+      ]),
+      grid([
+        "................",
+        "................",
+        "....y.......y...",
+        ".......yyyy.....",
+        ".....yyyyyyy....",
+        "...yyyyyyyyyy...",
+        ".y.yyyyyyyyyy.y.",
+        "...yyyyyyyyyy...",
+        ".....yyyyyyy....",
+        ".......yyyy.....",
+        "....y.......y...",
+        "................",
+        "................",
+        "................",
+        "................",
+        "................"
+      ])
+    ],
+    night: [
+      grid([
+        "................",
+        "................",
+        ".......k........",
+        "......kpk.......",
+        ".....kppk.......",
+        "....kpppkk......",
+        "....kpp..k......",
+        "....kpppkk......",
+        ".....kppk.......",
+        "......kpk.......",
+        ".......k........",
+        "................",
+        ".ww.............",
+        "................",
+        "................",
+        "................"
+      ]),
+      grid([
+        "................",
+        "................",
+        ".......k........",
+        "......kpk.......",
+        ".....kppk.......",
+        "....kpppkk......",
+        "....kpp..k......",
+        "....kpppkk......",
+        ".....kppk.......",
+        "......kpk.......",
+        ".......k........",
+        "................",
+        ".............ww.",
+        "................",
+        "................",
+        "................"
+      ])
+    ]
+  };
+
+  const GREETINGS = {
+    en: { morning: "Good morning", afternoon: "Good afternoon", night: "Good night" },
+    zh: { morning: "早上好", afternoon: "下午好", night: "晚安" }
+  };
+
+  const SEA_LIFE = {
+    fish: grid([
+      "..............",
+      ".....ss.......",
+      "...ssggsss....",
+      "..ssssnwssss..",
+      "...ssssssss...",
+      "....ss..ss....",
+      ".............."
+    ]),
+    shark: grid([
+      "....................",
+      ".......k............",
+      "......kkk...........",
+      "....kksssskk........",
+      "...ksssssssssk......",
+      "..kssssswnsssssk....",
+      "...ksssssssssk......",
+      ".....kkkkkkk........"
+    ]),
+    turtle: grid([
+      "................",
+      "....yyyyyy......",
+      "...yykyyyy......",
+      "..yyyyyyyyk.....",
+      "..yyyyyyynk.....",
+      "...yyyyyyy......",
+      "..s..y..y..s....",
+      "................"
+    ]),
+    diver: grid([
+      "................",
+      "......kk........",
+      ".....kssk.......",
+      "....kssssk.k....",
+      "...kssssssksk...",
+      "....kkkkkk.ss...",
+      ".......s..ss....",
+      ".......ss.......",
+      "................"
+    ])
+  };
+
+  const SURFER = [
+    grid([
+      "...kkkkkk.......",
+      "..kkkkkkkk......",
+      "...kccccck......",
+      "...knnnnnk......",
+      "....cccccc......",
+      "...kcccccck.....",
+      "..kkcccccckk....",
+      "...kccccccck....",
+      "....yyyyyyy.....",
+      "....kyyyyyyk....",
+      ".....kccck......",
+      ".....kccck......",
+      "....k....k......",
+      "...k......k.....",
+      "..yyyyyyyyyyyy..",
+      ".yyyyyyyyyyyyyy."
+    ]),
+    grid([
+      "...kkkkkk.......",
+      "..kkkkkkkk......",
+      "...kccccck......",
+      "...knnnnnk......",
+      "....cccccc......",
+      "..k.kccccck.k...",
+      ".kkkkccccckkkk..",
+      "...kccccccck....",
+      "....yyyyyyy.....",
+      "....kyyyyyyk....",
+      ".....kccck......",
+      "....kcccck......",
+      "...k......k.....",
+      "..k........k....",
+      ".yyyyyyyyyyyyyy.",
+      "yyyyyyyyyyyyyyyy"
+    ])
+  ];
+
+  const DIVER_MASK = [
+    grid([
+      "......kk........",
+      "......kk........",
+      "..kkkkkkkkkk....",
+      ".kggggggggggk...",
+      ".kgwwggggwwgk...",
+      ".kggggggggggk...",
+      "..kkkkkkkkkk....",
+      ".....k..k.......",
+      "....kk..kk......",
+      "................"
+    ]),
+    grid([
+      "......kk........",
+      "......kk........",
+      "..kkkkkkkkkk....",
+      ".kgwwggggwwgk...",
+      ".kgwwggggwwgk...",
+      ".kggggggggggk...",
+      "..kkkkkkkkkk....",
+      ".....k..k.......",
+      "....kk..kk......",
+      "................"
+    ])
+  ];
+
+  const CURSOR_FISH = [
+    grid([
+      "..............",
+      ".....ss.......",
+      "...ssggsss....",
+      "..ssssnwssss..",
+      ".ssssssssssss.",
+      "..ssssssssss..",
+      "...ss....ss...",
+      "..............",
+      ".............."
+    ]),
+    grid([
+      "..............",
+      "....ss........",
+      "..ssggssss....",
+      ".sssssnwssss..",
+      "sssssssssssss.",
+      "..sssssssss...",
+      "....ss..ss....",
+      "..............",
+      ".............."
+    ]),
+    grid([
+      "..w...........",
+      ".....ss.......",
+      "...ssggsss....",
+      "..ssssnwssss..",
+      ".ssssssssssss.",
+      "..ssssssssss..",
+      "...ss....ss...",
+      "..............",
+      ".............."
+    ])
+  ];
+
   function boot() {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
     let reduced = reduce.matches;
@@ -243,19 +510,459 @@
       reduced = event.matches;
     });
 
+    const day = setupDay(function () { return reduced; });
     const lights = setupLights(function () { return reduced; });
+    const sea = setupSea(function () { return reduced; });
+    const cursor = setupCursor(function () { return reduced; });
     const creatures = setupCreatures(lights, function () { return reduced; });
     setupNav();
 
     let last = performance.now();
+    let rafId = 0;
     function frame(now) {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
-      lights.tick(dt, now);
-      creatures.tick(dt, now);
-      requestAnimationFrame(frame);
+      try {
+        day.tick(now);
+        lights.tick(dt, now);
+        sea.tick(dt, now);
+        cursor.tick(dt, now);
+        creatures.tick(dt, now);
+      } catch (err) {
+        console.error(err);
+      }
+      rafId = requestAnimationFrame(frame);
     }
-    requestAnimationFrame(frame);
+    function wake() {
+      last = performance.now();
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(frame);
+    }
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "hidden") cursor.release();
+      else wake();
+    });
+    window.addEventListener("blur", function () { cursor.release(); });
+    window.addEventListener("focus", wake);
+    window.addEventListener("pageshow", wake);
+    wake();
+  }
+
+  function spriteSheet(rows) {
+    const canvas = document.createElement("canvas");
+    paint(canvas, rows);
+    return canvas;
+  }
+
+  function setupSea(isReduced) {
+    const canvas = document.getElementById("sea");
+    if (!canvas) return { tick: function () {} };
+    const ctx = canvas.getContext("2d");
+    const sheets = {};
+    Object.keys(SEA_LIFE).forEach(function (name) {
+      sheets[name] = spriteSheet(SEA_LIFE[name]);
+    });
+    const surferFrames = SURFER.map(spriteSheet);
+    const waves = [
+      { y: 0.58, amp: 8, k: 0.010, speed: 0.85, color: "rgba(30, 74, 70, 0.13)" },
+      { y: 0.74, amp: 12, k: 0.008, speed: 0.55, color: "rgba(63, 127, 118, 0.16)" },
+      { y: 0.86, amp: 16, k: 0.006, speed: 0.38, color: "rgba(30, 74, 70, 0.15)" }
+    ];
+    const swimmers = [];
+    const drops = [];
+    let gust = null;
+    let nextGust = 6;
+    let nextSpawn = 0.4;
+    const kinds = ["fish", "shark", "turtle", "diver"];
+
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.max(1, Math.floor(window.innerWidth * dpr));
+      canvas.height = Math.max(1, Math.floor(window.innerHeight * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function level(wave, x, time) {
+      let y = window.innerHeight * wave.y + Math.sin(x * wave.k + time * wave.speed) * wave.amp;
+      if (gust) {
+        const dist = x - gust.x;
+        const reach = Math.abs(dist) / gust.width;
+        if (reach < 1) {
+          const n = Math.cos(reach * Math.PI * 0.5);
+          y += Math.sin(x * wave.k + time * wave.speed + Math.PI) * wave.amp * 3.1 * n * gust.power;
+        }
+      }
+      return y;
+    }
+
+    function spawnSwimmer() {
+      const kind = kinds[Math.floor(Math.random() * kinds.length)];
+      const fromLeft = Math.random() < 0.5;
+      const sheet = sheets[kind];
+      swimmers.push({
+        kind: kind,
+        sheet: sheet,
+        wave: 1 + Math.floor(Math.random() * 2),
+        x: fromLeft ? -sheet.width * 3 : window.innerWidth + sheet.width,
+        dir: fromLeft ? 1 : -1,
+        speed: 36 + Math.random() * 58,
+        scale: 2,
+        kick: 0
+      });
+    }
+
+    function spawnSurfer(enter) {
+      const fromLeft = Math.random() < 0.5;
+      swimmers.push({
+        kind: "surfer",
+        frames: surferFrames,
+        sheet: surferFrames[0],
+        wave: 2,
+        x: enter ? window.innerWidth * 0.32 : (fromLeft ? -50 : window.innerWidth + 50),
+        dir: enter ? 1 : (fromLeft ? 1 : -1),
+        speed: 62 + Math.random() * 24,
+        scale: 4,
+        surfer: true,
+        kick: 0
+      });
+    }
+
+    function spawnGust() {
+      const fromLeft = Math.random() < 0.5;
+      gust = {
+        x: fromLeft ? -180 : window.innerWidth + 180,
+        vx: (fromLeft ? 1 : -1) * (220 + Math.random() * 80),
+        width: 150 + Math.random() * 70,
+        power: 0,
+        age: 0
+      };
+    }
+
+    resize();
+    window.addEventListener("resize", resize);
+    spawnSwimmer();
+    spawnSurfer(true);
+
+    function tick(dt, now) {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const time = isReduced() ? 0 : now / 1000;
+      ctx.clearRect(0, 0, w, h);
+      if (!isReduced()) {
+        nextGust -= dt;
+        nextSpawn -= dt;
+        if (nextSpawn <= 0 && swimmers.length < 5) {
+          spawnSwimmer();
+          nextSpawn = 3.5 + Math.random() * 4;
+        }
+        if (!swimmers.some(function (fish) { return fish.surfer; })) spawnSurfer(false);
+        if (!gust && nextGust <= 0) {
+          spawnGust();
+          nextGust = 16 + Math.random() * 12;
+        }
+        if (gust) {
+          gust.age += dt;
+          gust.x += gust.vx * dt;
+          gust.power = Math.sin(Math.min(1, gust.age / 0.6) * Math.PI);
+          if ((gust.vx > 0 && gust.x > w + gust.width) || (gust.vx < 0 && gust.x < -gust.width)) {
+            gust = null;
+          } else if (Math.random() < 0.45) {
+            drops.push({
+              x: gust.x,
+              y: level(waves[2], gust.x, time),
+              vx: (Math.random() - 0.5) * 40,
+              vy: -30 - Math.random() * 50,
+              life: 0.7 + Math.random() * 0.4
+            });
+          }
+        }
+      }
+
+      waves.forEach(function (wave, index) {
+        ctx.beginPath();
+        for (let x = 0; x <= w; x += 8) {
+          const y = level(wave, x, time);
+          if (x === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = wave.color;
+        ctx.lineWidth = index === 2 ? 1.6 : 1.15;
+        ctx.stroke();
+        if (index === 2) {
+          ctx.lineTo(w, h);
+          ctx.lineTo(0, h);
+          ctx.closePath();
+          ctx.fillStyle = gust ? "rgba(176, 214, 204, 0.16)" : "rgba(63, 127, 118, 0.045)";
+          ctx.fill();
+        }
+      });
+
+      for (let i = swimmers.length - 1; i >= 0; i--) {
+        const fish = swimmers[i];
+        if (!isReduced()) {
+          if (gust && Math.abs(fish.x - gust.x) < gust.width * 0.45) fish.kick = 0.55;
+          if (fish.kick > 0) {
+            fish.x += gust.vx * dt * 0.35;
+            fish.kick -= dt;
+          }
+          fish.x += fish.dir * fish.speed * dt;
+        }
+        if (fish.x < -80 || fish.x > w + 80) {
+          swimmers.splice(i, 1);
+          continue;
+        }
+        const y = level(waves[fish.wave], fish.x, time);
+        const ahead = level(waves[fish.wave], fish.x + 12 * fish.dir, time);
+        if (fish.frames) fish.sheet = fish.frames[Math.floor(time * 4) % fish.frames.length];
+        const sheet = fish.sheet;
+        const scale = fish.scale || 2;
+        ctx.save();
+        ctx.translate(fish.x, y);
+        ctx.rotate(Math.atan2(ahead - y, 12));
+        ctx.scale(fish.dir * scale, scale);
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(sheet, -sheet.width / 2, -sheet.height);
+        ctx.restore();
+      }
+
+      for (let i = drops.length - 1; i >= 0; i--) {
+        const drop = drops[i];
+        drop.life -= dt;
+        if (drop.life <= 0) {
+          drops.splice(i, 1);
+          continue;
+        }
+        drop.vy += 90 * dt;
+        drop.x += drop.vx * dt;
+        drop.y += drop.vy * dt;
+        ctx.fillStyle = "rgba(255, 252, 247, " + Math.max(0, drop.life) + ")";
+        ctx.fillRect(drop.x, drop.y, 2, 2);
+      }
+    }
+
+    return { tick: tick };
+  }
+
+  function setupCursor(isReduced) {
+    const fine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    const host = document.getElementById("pointer");
+    const bubbleCanvas = document.getElementById("bubbles");
+    if (!fine || !host || !bubbleCanvas) return { tick: function () {}, release: function () {} };
+    const canvas = document.createElement("canvas");
+    host.appendChild(canvas);
+    paint(canvas, DIVER_MASK[0]);
+    const bctx = bubbleCanvas.getContext("2d");
+    const bubbles = [];
+    let x = -80;
+    let y = -80;
+    let tx = -80;
+    let ty = -80;
+    let hot = false;
+    let active = false;
+    let frame = 0;
+    let nextBubble = 0;
+
+    function resizeBubbles() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      bubbleCanvas.width = Math.max(1, Math.floor(window.innerWidth * dpr));
+      bubbleCanvas.height = Math.max(1, Math.floor(window.innerHeight * dpr));
+      bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function showMask(event) {
+      const target = event.target && event.target.closest ? event.target : null;
+      const typing = target && target.closest("input, textarea");
+      tx = event.clientX;
+      ty = event.clientY;
+      active = !typing;
+      hot = !typing && !!(target && target.closest("a, button, .sprite"));
+      host.style.display = active ? "block" : "none";
+      document.body.classList.toggle("sea-cursor", active);
+    }
+
+    function release() {
+      active = false;
+      hot = false;
+      host.style.display = "none";
+      document.body.classList.remove("sea-cursor");
+      document.body.classList.remove("dragging");
+    }
+
+    resizeBubbles();
+    window.addEventListener("resize", resizeBubbles);
+    window.addEventListener("pointermove", showMask);
+    window.addEventListener("pointerdown", showMask);
+    window.addEventListener("pointerleave", release);
+    document.addEventListener("mouseleave", release);
+
+    return {
+      release: release,
+      tick: function (dt, now) {
+        bctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        if (!active) {
+          bubbles.length = 0;
+          return;
+        }
+        const follow = Math.min(1, dt * (hot ? 24 : 16));
+        x += (tx - x) * follow;
+        y += (ty - y) * follow;
+        const next = hot ? 1 : 0;
+        if (next !== frame) {
+          frame = next;
+          paint(canvas, DIVER_MASK[next]);
+        }
+        const w = host.offsetWidth || 34;
+        const h = host.offsetHeight || 30;
+        host.style.left = (x - w / 2) + "px";
+        host.style.top = (y - h / 2) + "px";
+        host.style.transform = "none";
+        if (!isReduced()) {
+          nextBubble -= dt;
+          if (nextBubble <= 0) {
+            bubbles.push({
+              x: x + (Math.random() - 0.5) * 8,
+              y: y + 8,
+              born: y + 8,
+              r: 2.1,
+              vx: (Math.random() - 0.5) * 10,
+              vy: -32 - Math.random() * 18,
+              pop: 0
+            });
+            nextBubble = hot ? 0.12 : 0.28;
+          }
+        }
+        for (let i = bubbles.length - 1; i >= 0; i--) {
+          const bubble = bubbles[i];
+          if (bubble.pop > 0) {
+            bubble.pop += dt;
+            const t = bubble.pop / 0.22;
+            bctx.beginPath();
+            bctx.arc(bubble.x, bubble.y, bubble.r * (1 + t * 0.8), 0, Math.PI * 2);
+            bctx.strokeStyle = "rgba(63, 127, 118, " + Math.max(0, 1 - t) + ")";
+            bctx.lineWidth = 1.2;
+            bctx.stroke();
+            if (t >= 1) bubbles.splice(i, 1);
+            continue;
+          }
+          bubble.x += bubble.vx * dt;
+          bubble.y += bubble.vy * dt;
+          const rise = bubble.born - bubble.y;
+          bubble.r = 2.1 + rise * 0.055;
+          if (rise > 150 || bubble.r > 14 || bubble.y < 28) {
+            bubble.pop = 0.001;
+            continue;
+          }
+          bctx.beginPath();
+          bctx.arc(bubble.x, bubble.y, bubble.r, 0, Math.PI * 2);
+          bctx.fillStyle = "rgba(214, 236, 230, 0.35)";
+          bctx.fill();
+          bctx.strokeStyle = "rgba(30, 74, 70, 0.55)";
+          bctx.lineWidth = 1;
+          bctx.stroke();
+          bctx.beginPath();
+          bctx.arc(bubble.x - bubble.r * 0.28, bubble.y - bubble.r * 0.3, Math.max(0.6, bubble.r * 0.22), 0, Math.PI * 2);
+          bctx.fillStyle = "rgba(255, 252, 247, 0.8)";
+          bctx.fill();
+        }
+      }
+    };
+  }
+
+  function visitorZone() {
+    try {
+      const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (zone) return zone;
+    } catch (err) { /* keep the Hong Kong default */ }
+    return "Asia/Hong_Kong";
+  }
+
+  function visitorLang() {
+    const list = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || "en"];
+    return String(list[0] || "en").toLowerCase();
+  }
+
+  function hourIn(date, zone) {
+    try {
+      const parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: zone,
+        hour: "2-digit",
+        hourCycle: "h23"
+      }).formatToParts(date);
+      const hour = parts.find(function (part) { return part.type === "hour"; });
+      const value = Number(hour ? hour.value : "0");
+      return value === 24 ? 0 : value;
+    } catch (err) {
+      return (date.getUTCHours() + 8) % 24;
+    }
+  }
+
+  function partOfDay(hour) {
+    if (hour >= 5 && hour < 12) return "morning";
+    if (hour >= 12 && hour < 18) return "afternoon";
+    return "night";
+  }
+
+  function zoneLabel(zone) {
+    if (zone === "Asia/Hong_Kong" || zone === "Asia/Macau") return "HKT";
+    if (zone === "Asia/Shanghai" || zone === "Asia/Chongqing" || zone === "Asia/Harbin") return "BJT";
+    const city = zone.split("/").pop().replace(/_/g, " ");
+    return city.length > 14 ? city.slice(0, 14) : city;
+  }
+
+  function setupDay(isReduced) {
+    const hello = document.getElementById("hello");
+    const helloText = document.getElementById("hello-text");
+    const mark = document.getElementById("hello-mark");
+    const clock = document.getElementById("clock");
+    const clockTime = document.getElementById("clock-time");
+    const clockZone = document.getElementById("clock-zone");
+    const zone = visitorZone();
+    const lang = visitorLang();
+    const chinese = lang.indexOf("zh") === 0;
+    let shown = "";
+    let frame = -1;
+
+    if (hello) hello.classList.toggle("hello-zh", chinese);
+    if (clock) clock.title = zone;
+    if (clockZone) clockZone.textContent = zoneLabel(zone);
+
+    function render(now) {
+      const date = new Date();
+      const part = partOfDay(hourIn(date, zone));
+      const phrase = (chinese ? GREETINGS.zh : GREETINGS.en)[part];
+      if (helloText && phrase !== shown) {
+        shown = phrase;
+        helloText.textContent = phrase;
+        if (hello) hello.lang = chinese ? "zh-Hans" : "en";
+      }
+      if (mark) {
+        const frames = DAY_MARKS[part];
+        const next = isReduced() ? 0 : Math.floor(now / 700) % frames.length;
+        if (next !== frame) {
+          frame = next;
+          paint(mark, frames[next]);
+        }
+        const bob = isReduced() ? 0 : Math.sin(now / 520) * 1.1;
+        mark.style.transform = "translateY(" + bob + "px)";
+      }
+      if (clockTime) {
+        try {
+          clockTime.textContent = new Intl.DateTimeFormat("en-GB", {
+            timeZone: zone,
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hourCycle: "h23"
+          }).format(date);
+        } catch (err) {
+          clockTime.textContent = date.toLocaleTimeString("en-GB", { hour12: false });
+        }
+      }
+      if (clock) clock.dateTime = date.toISOString();
+    }
+
+    render(performance.now());
+    return { tick: render };
   }
 
   function setupNav() {
@@ -479,6 +1186,19 @@
       if (event.target.closest && event.target.closest(".creature")) return;
       closeBubble(open);
     });
+
+    function releaseDrags() {
+      creatures.forEach(function (creature) {
+        creature.dragging = false;
+        creature.el.classList.remove("held");
+      });
+      document.body.classList.remove("dragging");
+    }
+    window.addEventListener("blur", releaseDrags);
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) releaseDrags();
+    });
+    window.addEventListener("pointercancel", releaseDrags);
 
     document.addEventListener("keydown", function (event) {
       if (event.key !== "Escape") return;

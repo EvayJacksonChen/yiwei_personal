@@ -53,17 +53,26 @@
 </head>
 <body>
   <canvas id="lights" aria-hidden="true"></canvas>
+  <canvas id="sea" aria-hidden="true"></canvas>
+  <canvas id="bubbles" aria-hidden="true"></canvas>
+  <div id="pointer" aria-hidden="true"></div>
   <div class="page">
     <a class="skip" href="#about">Skip to content</a>
     <header class="top">
       <div class="wrap top-inner">
         <a class="brand" href="#top">Yiwei Chen</a>
-        <nav class="nav" aria-label="Sections">
-          <a href="#about">About</a>
-          <a href="#publications">Publications</a>
-          <a href="#news">News</a>
-          <a href="#experience">Experience</a>
-        </nav>
+        <div class="top-side">
+          <nav class="nav" aria-label="Sections">
+            <a href="#about">About</a>
+            <a href="#publications">Publications</a>
+            <a href="#news">News</a>
+            <a href="#experience">Experience</a>
+          </nav>
+          <time class="clock" id="clock">
+            <span class="clock-time" id="clock-time">--:--:--</span>
+            <span class="clock-zone" id="clock-zone">HKT</span>
+          </time>
+        </div>
       </div>
     </header>
 
@@ -71,11 +80,11 @@
       <div class="wrap">
         <section class="hero" aria-label="Introduction">
           <div class="hero-copy">
+            <p class="hello" id="hello"><canvas id="hello-mark" width="16" height="16" aria-hidden="true"></canvas><span id="hello-text">Good afternoon</span></p>
             <p class="kicker">HKUST · Computer Science and Engineering</p>
             <h1>Yiwei Chen</h1>
-            <p class="zh" lang="zh-Hans">陈奕玮</p>
             <p class="topic">Marine Vision Intelligence</p>
-            <p class="role">PhD student at The Hong Kong University of Science and Technology.</p>
+            <p class="role">PhD student at CSE, The Hong Kong University of Science and Technology.</p>
             <ul class="links">
               <li><a href="mailto:jackson.chen.yiwei@gmail.com"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1.5"></rect><path d="M4 7l8 6 8-6"></path></svg>Email</a></li>
               <li><a href="https://scholar.google.com/citations?user=1xsk9rYAAAAJ&hl=en" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="solid" d="M12 3 1.5 9 12 15l8.2-4.5V17h2.3V9L12 3zM7 12.4V16c1.6 1.4 8.4 1.4 10 0v-3.6L12 15l-5-2.6z"></path></svg>Google Scholar</a></li>
@@ -84,12 +93,12 @@
               <li><a href="https://x.com/_yiweichen" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="solid" d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>X</a></li>
             </ul>
           </div>
-          <img class="portrait" src="assets/bio-photo.jpg" width="645" height="566" alt="Portrait of Yiwei Chen in Hong Kong.">
+          <div class="portrait-frame"><img class="portrait" src="assets/bio-photo.jpg" width="645" height="566" alt="Portrait of Yiwei Chen in Hong Kong."></div>
         </section>
 
         <section id="about">
           <h2>About</h2>
-          <p>I am Yiwei Chen (陈奕玮), also Jackson, a third-year PhD student in the Department of Computer Science and Engineering at The Hong Kong University of Science and Technology.</p>
+          <p>I am Yiwei Chen, also Jackson, a third-year PhD student in the Department of Computer Science and Engineering at The Hong Kong University of Science and Technology.</p>
           <p>I work on computer vision for marine and biology studies: recognition, and the problems that sit between 2D and 3D vision. At HKUST I work closely with Prof. <a href="https://zhengziqiang.github.io/" target="_blank" rel="noopener noreferrer">Ziqiang Zheng</a> (UESTC) and am supervised by Prof. <a href="http://saikit.org/" target="_blank" rel="noopener noreferrer">Sai-Kit Yeung</a>.</p>
           <p>If you would like to talk about the work, or about a collaboration, write to <a href="mailto:jackson.chen.yiwei@gmail.com">jackson.chen.yiwei@gmail.com</a> or <a href="mailto:ychenmb@connect.ust.hk">ychenmb@connect.ust.hk</a>.</p>
         </section>
