@@ -353,11 +353,26 @@ h1 {
   color: var(--ink);
 }
 
-.portrait-frame {
+.portrait-wrap {
   position: relative;
   align-self: stretch;
   height: 100%;
   min-height: 25rem;
+}
+
+.photo-bubbles {
+  position: absolute;
+  left: -36px;
+  top: -240px;
+  width: calc(100% + 72px);
+  height: calc(100% + 260px);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.portrait-frame {
+  position: absolute;
+  inset: 0;
   border-radius: 2px;
   overflow: hidden;
   box-shadow: var(--shadow);
@@ -741,12 +756,19 @@ body.dragging .sprite { cursor: grabbing; }
     padding-top: 1.6rem;
   }
 
-  .portrait-frame {
+  .portrait-wrap {
     width: min(100%, 16.5rem);
+    height: auto;
     min-height: 0;
     aspect-ratio: 3 / 4;
     justify-self: start;
     order: 2;
+  }
+
+  .portrait-frame {
+    width: auto;
+    min-height: 0;
+    aspect-ratio: auto;
   }
 
   .portrait {
@@ -764,6 +786,7 @@ body.dragging .sprite { cursor: grabbing; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .hello { animation: none; }
+  
 
   .creature.lit canvas,
   .creature[data-kind="jelly"] canvas {
@@ -775,6 +798,7 @@ body.dragging .sprite { cursor: grabbing; }
   #lights,
   #sea,
   #bubbles,
+  .photo-bubbles,
   #pointer,
   #creatures,
   .hint,

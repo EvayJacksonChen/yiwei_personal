@@ -514,6 +514,7 @@
     const lights = setupLights(function () { return reduced; });
     const sea = setupSea(function () { return reduced; });
     const rainbow = setupRainbow(function () { return reduced; });
+    const photoBubbles = setupPhotoBubbles(function () { return reduced; });
     const cursor = setupCursor(function () { return reduced; });
     const creatures = setupCreatures(lights, function () { return reduced; });
     setupNav();
@@ -528,6 +529,7 @@
         lights.tick(dt, now);
         sea.tick(dt, now);
         rainbow.tick(now);
+        photoBubbles.tick(dt);
         cursor.tick(dt, now);
         creatures.tick(dt, now);
       } catch (err) {
@@ -604,6 +606,120 @@
     };
   }
 
+  function drawGlassBubble(ctx, x, y, radius) {
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(214, 236, 230, 0.34)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(30, 74, 70, 0.38)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x - radius * 0.28, y - radius * 0.32, Math.max(0.7, radius * 0.22), 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255, 252, 247, 0.8)";
+    ctx.fill();
+  }
+
+  function setupPhotoBubbles(isReduced) {
+    const canvas = document.getElementById("photo-bubbles");
+    const frame = document.querySelector(".portrait-frame");
+    if (!canvas || !frame) return { tick: function () {} };
+    const ctx = canvas.getContext("2d");
+    const bubbles = [];
+    let next = 0;
+
+    function fit() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = Math.max(1, Math.floor(rect.width * dpr));
+      const h = Math.max(1, Math.floor(rect.height * dpr));
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function spawn() {
+      const photo = frame.getBoundingClientRect();
+      const box = canvas.getBoundingClientRect();
+      if (photo.width < 20) return;
+      const left = photo.left - box.left;
+      const top = photo.top - box.top;
+      const edge = Math.random();
+      let x;
+      let y;
+      if (edge < 0.45) {
+        x = left + Math.random() * photo.width;
+        y = top + Math.random() * 18;
+      } else if (edge < 0.7) {
+        x = left + Math.random() * 10;
+        y = top + Math.random() * photo.height;
+      } else if (edge < 0.95) {
+        x = left + photo.width - Math.random() * 10;
+        y = top + Math.random() * photo.height;
+      } else {
+        x = left + Math.random() * photo.width;
+        y = top + photo.height - Math.random() * 12;
+      }
+      bubbles.push({
+        x: x,
+        y: y,
+        born: y,
+        r0: 3 + Math.random() * 5,
+        vy: -(32 + Math.random() * 40),
+        vx: (Math.random() - 0.5) * 18,
+        wobble: Math.random() * Math.PI * 2,
+        pop: 0
+      });
+    }
+
+    window.addEventListener("resize", fit);
+
+    return {
+      tick: function (dt) {
+        fit();
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        ctx.clearRect(0, 0, w, h);
+        if (!isReduced()) {
+          next -= dt;
+          if (next <= 0 && bubbles.length < 28) {
+            spawn();
+            if (Math.random() < 0.65) spawn();
+            next = 0.12 + Math.random() * 0.16;
+          }
+          const time = performance.now() / 1000;
+          for (let i = bubbles.length - 1; i >= 0; i--) {
+            const bubble = bubbles[i];
+            if (bubble.pop > 0) {
+              bubble.pop += dt;
+              const rise = Math.max(0, bubble.born - bubble.y);
+              const radius = bubble.r0 + rise * 0.06;
+              const t = bubble.pop / 0.24;
+              ctx.beginPath();
+              ctx.arc(bubble.x, bubble.y, radius * (1 + t * 0.9), 0, Math.PI * 2);
+              ctx.strokeStyle = "rgba(63, 127, 118, " + Math.max(0, 0.7 * (1 - t)) + ")";
+              ctx.lineWidth = 1.3;
+              ctx.stroke();
+              if (t >= 1) bubbles.splice(i, 1);
+              continue;
+            }
+            bubble.y += bubble.vy * dt;
+            bubble.x += bubble.vx * dt + Math.sin(time + bubble.wobble) * 10 * dt;
+            const rise = Math.max(0, bubble.born - bubble.y);
+            const radius = bubble.r0 + rise * 0.06;
+            if (rise > 168 || bubble.y < 8 || radius > 18) {
+              bubble.pop = 0.001;
+              continue;
+            }
+            drawGlassBubble(ctx, bubble.x, bubble.y, radius);
+          }
+        }
+      }
+    };
+  }
+
   function setupSea(isReduced) {
     const canvas = document.getElementById("sea");
     if (!canvas) return { tick: function () {} };
@@ -620,9 +736,30 @@
     ];
     const swimmers = [];
     const drops = [];
+    const field = [];
+
+    function makeFieldBubble(mode) {
+      const across = mode === true || mode === "pop";
+      const y = across
+        ? Math.random() * window.innerHeight
+        : window.innerHeight + 16 + Math.random() * 90;
+      return {
+        x: Math.random() * window.innerWidth,
+        y: y,
+        born: y,
+        r0: 3 + Math.random() * (mode === "pop" ? 7 : 11),
+        vy: -(18 + Math.random() * 34),
+        wobble: Math.random() * Math.PI * 2,
+        pop: 0,
+        appear: mode === "pop" ? 0 : 1
+      };
+    }
+
+    for (let i = 0; i < 36; i++) field.push(makeFieldBubble(true));
     let gust = null;
     let nextGust = 6;
     let nextSpawn = 0.4;
+    let nextField = 0.05;
     const kinds = ["fish", "shark", "turtle", "diver"];
 
     function resize() {
@@ -698,7 +835,49 @@
       const h = window.innerHeight;
       const time = isReduced() ? 0 : now / 1000;
       ctx.clearRect(0, 0, w, h);
+      for (let i = field.length - 1; i >= 0; i--) {
+        const bubble = field[i];
+        if (!isReduced() && bubble.pop === 0) {
+          bubble.y += bubble.vy * dt;
+          bubble.x += Math.sin(time * 0.7 + bubble.wobble) * 18 * dt;
+          if (bubble.appear < 1) bubble.appear = Math.min(1, bubble.appear + dt * 3.2);
+        }
+        const rise = Math.max(0, bubble.born - bubble.y);
+        const radius = (bubble.r0 + rise * 0.04) * (bubble.appear == null ? 1 : bubble.appear);
+        if (bubble.pop > 0) {
+          bubble.pop += dt;
+          const t = bubble.pop / 0.28;
+          ctx.beginPath();
+          ctx.arc(bubble.x, bubble.y, radius * (1 + t), 0, Math.PI * 2);
+          ctx.strokeStyle = "rgba(63, 127, 118, " + Math.max(0, 0.45 * (1 - t)) + ")";
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+          if (t >= 1) field.splice(i, 1);
+          continue;
+        }
+        if (bubble.y < 18 || rise > h * 0.92) {
+          bubble.pop = 0.001;
+          continue;
+        }
+        ctx.beginPath();
+        ctx.arc(bubble.x, bubble.y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(214, 236, 230, 0.28)";
+        ctx.fill();
+        ctx.strokeStyle = "rgba(30, 74, 70, 0.28)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(bubble.x - radius * 0.28, bubble.y - radius * 0.32, Math.max(0.8, radius * 0.22), 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255, 252, 247, 0.75)";
+        ctx.fill();
+      }
       if (!isReduced()) {
+        nextField -= dt;
+        while (nextField <= 0 && field.length < 58) {
+          field.push(makeFieldBubble("pop"));
+          if (Math.random() < 0.45) field.push(makeFieldBubble(false));
+          nextField += 0.11 + Math.random() * 0.16;
+        }
         nextGust -= dt;
         nextSpawn -= dt;
         if (nextSpawn <= 0 && swimmers.length < 5) {
