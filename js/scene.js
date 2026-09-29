@@ -12,7 +12,10 @@
     y: "#e2c48a",
     w: "#fffcf7",
     n: "#1b1e1d",
-    c: "#d9896a"
+    c: "#d9896a",
+    o: "#f2c94c",
+    r: "#e07b86",
+    u: "#6aaed4"
   };
 
   function grid(lines) {
@@ -503,6 +506,264 @@
     ])
   ];
 
+  const MINNOW = [
+    grid([
+      "........",
+      ".sssss..",
+      "ssgnwss.",
+      ".ssss...",
+      "..s..s.."
+    ]),
+    grid([
+      "........",
+      "sssss...",
+      "ssgnwss.",
+      ".ssss...",
+      "...s..s."
+    ])
+  ];
+
+  const WEED = [
+    grid([
+      "...ss...",
+      "...gg...",
+      "..sggs..",
+      "..ssss..",
+      ".ss..ss.",
+      ".gs..sg.",
+      "ss....ss",
+      "s......s",
+      "s......s",
+      "ss....s.",
+      ".s....s.",
+      ".ss..s..",
+      "..s..s..",
+      "..ss.s..",
+      "...s....",
+      "........"
+    ]),
+    grid([
+      "....ss..",
+      "....gg..",
+      "...sggs.",
+      "..ssss..",
+      ".ss..ss.",
+      "gs...sg.",
+      "s.....ss",
+      "s......s",
+      "ss.....s",
+      ".s....ss",
+      ".ss...s.",
+      "..s..ss.",
+      "..s.s...",
+      "..ss....",
+      "...s....",
+      "........"
+    ])
+  ];
+
+  const CORAL = grid([
+    "....cc......",
+    "..cccccc....",
+    ".cccyyccc...",
+    ".ccyyyycc...",
+    "cccyyyyccc..",
+    ".cccyyycc...",
+    "..cckkcc....",
+    "..cccccc....",
+    "...cccc.....",
+    "....cc......",
+    "............"
+  ]);
+
+  const REEF = grid([
+    "......cccc......",
+    "...cccyyyycc....",
+    "..ccyyyyyyyycc..",
+    ".cccyyyyyyyccc..",
+    "..cckkkkkkkkcc..",
+    "...cccccccccc...",
+    ".....cccccc.....",
+    "................"
+  ]);
+
+  const TUFT = [
+    grid([
+      "...ss...",
+      "..sggs..",
+      ".ssssss.",
+      "ss.ss.ss",
+      "s..ss..s",
+      "s......s",
+      ".s....s.",
+      "..s..s..",
+      "..ssss..",
+      "...ss...",
+      "........",
+      "........"
+    ]),
+    grid([
+      "....ss..",
+      "...sggs.",
+      "..ssssss",
+      ".ss.ss.s",
+      "s...ss.s",
+      "s......s",
+      ".s....ss",
+      "..s..s..",
+      "...sss..",
+      "...ss...",
+      "........",
+      "........"
+    ])
+  ];
+
+  const BUD = grid([
+    "..cc....",
+    ".ccyc...",
+    "ccyycc..",
+    ".ckkcc..",
+    "..cccc..",
+    "...cc...",
+    "........",
+    "........"
+  ]);
+
+  const KELP = [
+    grid([
+      "....ss....ss....",
+      "...sggs..sggs...",
+      "..ss..ssss..ss..",
+      "..s....ss....s..",
+      ".ss....ss....ss.",
+      ".s.....ss.....s.",
+      "ss.....ss.....ss",
+      "s......ss......s",
+      "s......ss......s",
+      ".s.....ss.....s.",
+      ".ss....ss....ss.",
+      "..s....ss....s..",
+      "..ss...ss...ss..",
+      "...ss..ss..ss...",
+      "....ss.ss.ss....",
+      "......ssss......"
+    ]),
+    grid([
+      ".....ss....ss...",
+      "....sggs..sggs..",
+      "...ss..ssss..ss.",
+      "...s....ss....s.",
+      "..ss....ss....ss",
+      "..s.....ss.....s",
+      "ss.....ss.....ss",
+      "s......ss......s",
+      "s......ss......s",
+      "..s.....ss.....s",
+      "..ss....ss....ss",
+      "...s....ss....s.",
+      "...ss...ss...ss.",
+      "....ss..ss..ss..",
+      ".....ss.ss.ss...",
+      ".......ssss....."
+    ])
+  ];
+
+  const FAN = grid([
+    "..cc......cc..",
+    ".cccc....cccc.",
+    "cccyyc..cyyccc",
+    ".ccyyyyyyyycc.",
+    ".cccyyyyyyycc.",
+    "..cccyyyyccc..",
+    "...cccyyccc...",
+    "....cckkcc....",
+    ".....cccc.....",
+    "......cc......",
+    "..............",
+    ".............."
+  ]);
+
+  const ROCK = grid([
+    "...kkkkkkkkkk...",
+    "..kyyyyyyyyyyk..",
+    ".kyyyyyyyyyyyyk.",
+    ".kkkkkkkkkkkkkk.",
+    "..dddddddddddd..",
+    "...dddddddddd..."
+  ]);
+
+  const PAC_SHUT = grid([
+    "..ooo..",
+    ".ooooo.",
+    "ooooooo",
+    "ooooooo",
+    "ooooooo",
+    ".ooooo.",
+    "..ooo.."
+  ]);
+
+  const PAC_OPEN = {
+    e: grid([
+      "..ooo..",
+      ".oooo..",
+      "ooo....",
+      "oo.....",
+      "ooo....",
+      ".oooo..",
+      "..ooo.."
+    ]),
+    w: grid([
+      "..ooo..",
+      "..oooo.",
+      "....ooo",
+      ".....oo",
+      "....ooo",
+      "..oooo.",
+      "..ooo.."
+    ]),
+    s: grid([
+      "..ooo..",
+      ".ooooo.",
+      "ooooooo",
+      "ooooooo",
+      "ooo.ooo",
+      ".oo.oo.",
+      "..o.o.."
+    ]),
+    n: grid([
+      "..o.o..",
+      ".oo.oo.",
+      "ooo.ooo",
+      "ooooooo",
+      "ooooooo",
+      ".ooooo.",
+      "..ooo.."
+    ])
+  };
+
+  const GHOSTS = [
+    grid([
+      "..rrrr.",
+      ".rrrrrr",
+      "rrwwrrw",
+      "rrnnrrn",
+      "rrrrrrr",
+      "rrrrrrr",
+      "rrrrrrr",
+      "r.r.r.r"
+    ]),
+    grid([
+      "..uuuu.",
+      ".uuuuuu",
+      "uuwwuuw",
+      "uunnuun",
+      "uuuuuuu",
+      "uuuuuuu",
+      "uuuuuuu",
+      "u.u.u.u"
+    ])
+  ];
+
   function boot() {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
     let reduced = reduce.matches;
@@ -516,6 +777,7 @@
     const rainbow = setupRainbow(function () { return reduced; });
     const photoBubbles = setupPhotoBubbles(function () { return reduced; });
     if (sea.useBubbles) sea.useBubbles(photoBubbles);
+    const arcade = setupArcade(function () { return reduced; });
     const cursor = setupCursor(function () { return reduced; }, sea);
     const creatures = setupCreatures(lights, function () { return reduced; });
     setupNav();
@@ -531,6 +793,7 @@
         sea.tick(dt, now);
         rainbow.tick(now);
         photoBubbles.tick(dt);
+        arcade.tick(dt, now);
         cursor.tick(dt, now);
         creatures.tick(dt, now);
       } catch (err) {
@@ -746,6 +1009,249 @@
       hit: hit,
       pop: function (bubble) {
         if (bubble && bubble.pop === 0) bubble.pop = 0.001;
+      }
+    };
+  }
+
+  function setupArcade(isReduced) {
+    const canvas = document.getElementById("arcade");
+    const frame = document.querySelector(".portrait-frame");
+    if (!canvas || !frame) return { tick: function () {} };
+    const ctx = canvas.getContext("2d");
+    let track = [];
+    let snake = [];
+    let trail = [];
+    let pacHead = 0;
+    let snakeDir = 1;
+    let pacDir = -1;
+    let pellet = 12;
+    let acc = 0;
+    let cool = 0;
+    let mode = "run";
+    let modeT = 0;
+    let punchX = 0;
+    let punchY = 0;
+    let spaced = false;
+    const snakeLen = 12;
+    const punchDur = 0.3;
+    const turnDur = 0.46;
+
+    function fit() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = Math.max(1, Math.floor(rect.width * dpr));
+      const h = Math.max(1, Math.floor(rect.height * dpr));
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function buildTrack() {
+      const photo = frame.getBoundingClientRect();
+      const box = canvas.getBoundingClientRect();
+      if (photo.width < 20) {
+        track = [];
+        return;
+      }
+      const margin = 12;
+      const left = photo.left - box.left - margin;
+      const top = photo.top - box.top - margin;
+      const right = photo.right - box.left + margin;
+      const bottom = photo.bottom - box.top + margin;
+      const step = 8;
+      const pts = [];
+      function edge(x0, y0, x1, y1) {
+        const n = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0) / step));
+        for (let i = 0; i < n; i++) {
+          pts.push({
+            x: x0 + (x1 - x0) * i / n,
+            y: y0 + (y1 - y0) * i / n
+          });
+        }
+      }
+      edge(left, top, right, top);
+      edge(right, top, right, bottom);
+      edge(right, bottom, left, bottom);
+      edge(left, bottom, left, top);
+      track = pts;
+      if (pellet >= track.length) pellet = 0;
+    }
+
+    function facing(from, to) {
+      if (Math.abs(to.x - from.x) > Math.abs(to.y - from.y)) return to.x >= from.x ? "e" : "w";
+      return to.y >= from.y ? "s" : "n";
+    }
+
+    function blit(lines, x, y, scale, angle) {
+      const h = lines.length;
+      const w = lines[0].length;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle || 0);
+      ctx.imageSmoothingEnabled = false;
+      for (let row = 0; row < h; row++) {
+        for (let col = 0; col < w; col++) {
+          const color = PAL[lines[row][col]];
+          if (!color) continue;
+          ctx.fillStyle = color;
+          ctx.fillRect((col - w / 2) * scale, (row - h / 2) * scale, scale, scale);
+        }
+      }
+      ctx.restore();
+    }
+
+    function faceAngle(face) {
+      if (face === "s") return Math.PI / 2;
+      if (face === "w") return Math.PI;
+      if (face === "n") return -Math.PI / 2;
+      return 0;
+    }
+
+    window.addEventListener("resize", fit);
+
+    return {
+      tick: function (dt, now) {
+        fit();
+        buildTrack();
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        ctx.clearRect(0, 0, w, h);
+        const len = track.length;
+        if (len < 8) return;
+        function mod(i) {
+          return (i % len + len) % len;
+        }
+        function circ(a, b) {
+          const d = Math.abs(a - b) % len;
+          return Math.min(d, len - d);
+        }
+        if (!spaced) {
+          pacHead = Math.floor(len / 2);
+          pellet = 14;
+          snake = [];
+          for (let s = 0; s < snakeLen; s++) snake.push(mod(-s * snakeDir));
+          trail = [];
+          for (let i = 28; i >= 0; i--) trail.push(mod(pacHead - i * pacDir));
+          spaced = true;
+        }
+        function travelAngle(dir, idx) {
+          return faceAngle(facing(track[idx], track[mod(idx + dir)]));
+        }
+        if (!isReduced()) {
+          if (mode === "run") {
+            acc += dt;
+            cool = Math.max(0, cool - dt);
+            const pace = 0.11;
+            let steps = 0;
+            while (acc >= pace && steps < 4) {
+              acc -= pace;
+              steps += 1;
+              snake.unshift(mod(snake[0] + snakeDir));
+              snake.pop();
+              pacHead = mod(pacHead + pacDir);
+              trail.push(pacHead);
+              if (trail.length > 48) trail.shift();
+              if (snake[0] === pellet) pellet = mod(pellet + 17 * snakeDir);
+              if (cool > 0) continue;
+              let hit = -1;
+              for (let s = 0; s < snake.length; s++) {
+                if (circ(pacHead, snake[s]) <= 1) {
+                  hit = snake[s];
+                  break;
+                }
+              }
+              if (hit < 0) continue;
+              punchX = track[hit].x;
+              punchY = track[hit].y;
+              mode = "punch";
+              modeT = 0;
+              acc = 0;
+              break;
+            }
+          } else {
+            acc = 0;
+            modeT += dt;
+            if (mode === "punch" && modeT >= punchDur) {
+              mode = "turn";
+              modeT = 0;
+            } else if (mode === "turn" && modeT >= turnDur) {
+              snakeDir *= -1;
+              pacDir *= -1;
+              mode = "run";
+              modeT = 0;
+              cool = 0.55;
+            }
+          }
+        }
+        for (let i = 0; i < len; i += 3) {
+          const along = circ(i, pacHead);
+          if (along < 3) continue;
+          const dot = track[i];
+          ctx.fillStyle = "rgba(226, 196, 138, 0.85)";
+          ctx.fillRect(Math.round(dot.x) - 1, Math.round(dot.y) - 1, 2, 2);
+        }
+        const spin = mode === "turn"
+          ? Math.PI * (function (u) { return u * u * (3 - 2 * u); })(Math.min(1, modeT / turnDur))
+          : 0;
+        const recoil = mode === "punch" ? Math.sin(Math.min(1, modeT / punchDur) * Math.PI) * 3.5 : 0;
+        const snakeAngle = travelAngle(snakeDir, snake[0]);
+        const pacAngle = travelAngle(pacDir, pacHead);
+        for (let s = snake.length - 1; s >= 0; s--) {
+          const pt = track[mod(snake[s])];
+          const head = s === 0;
+          const size = head ? 8 : 7;
+          const hx = head ? pt.x - Math.cos(snakeAngle) * recoil : pt.x;
+          const hy = head ? pt.y - Math.sin(snakeAngle) * recoil : pt.y;
+          ctx.fillStyle = head ? "#1a4743" : (s % 2 ? "#3f7f76" : "#2c6158");
+          ctx.fillRect(Math.round(hx) - (size >> 1), Math.round(hy) - (size >> 1), size, size);
+          if (!head) {
+            ctx.fillStyle = "#a9d2c8";
+            ctx.fillRect(Math.round(pt.x) - 1, Math.round(pt.y) - 1, 2, 2);
+            continue;
+          }
+          const look = snakeAngle + spin;
+          const fx = Math.cos(look) * 2.2;
+          const fy = Math.sin(look) * 2.2;
+          const px = -Math.sin(look) * 1.6;
+          const py = Math.cos(look) * 1.6;
+          ctx.fillStyle = "#fffcf7";
+          ctx.fillRect(Math.round(hx + fx + px) - 1, Math.round(hy + fy + py) - 1, 2, 2);
+          ctx.fillRect(Math.round(hx + fx - px) - 1, Math.round(hy + fy - py) - 1, 2, 2);
+        }
+        const food = track[mod(pellet)];
+        ctx.fillStyle = "#d9896a";
+        ctx.fillRect(Math.round(food.x) - 2, Math.round(food.y) - 2, 4, 4);
+        const open = Math.floor(now / 160) % 2 === 0;
+        const pacX = track[pacHead].x - Math.cos(pacAngle) * recoil;
+        const pacY = track[pacHead].y - Math.sin(pacAngle) * recoil;
+        blit(open ? PAC_OPEN.e : PAC_SHUT, pacX, pacY, 2, pacAngle + spin);
+        [14, 28].forEach(function (back, ghostIndex) {
+          const at = Math.max(0, trail.length - 1 - back);
+          const prev = Math.max(0, at - 1);
+          const ghostAngle = faceAngle(facing(track[trail[prev]], track[trail[at]]));
+          blit(GHOSTS[ghostIndex], track[trail[at]].x, track[trail[at]].y, 2, ghostAngle);
+        });
+        if (mode === "punch") {
+          const t = Math.min(1, modeT / punchDur);
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, 1 - t);
+          ctx.fillStyle = "#fffcf7";
+          const arm = Math.round(6 + t * 16);
+          ctx.fillRect(Math.round(punchX) - arm, Math.round(punchY) - 2, arm * 2, 5);
+          ctx.fillRect(Math.round(punchX) - 2, Math.round(punchY) - arm, 5, arm * 2);
+          ctx.fillStyle = "#f2c94c";
+          const box = Math.max(3, Math.round(10 * (1 - t)));
+          ctx.fillRect(Math.round(punchX) - (box >> 1), Math.round(punchY) - (box >> 1), box, box);
+          for (let i = 0; i < 8; i++) {
+            const ang = (i / 8) * Math.PI * 2 + 0.35;
+            const dist = 6 + t * 22;
+            ctx.fillStyle = i % 2 ? "#fffcf7" : "#e07b86";
+            ctx.fillRect(Math.round(punchX + Math.cos(ang) * dist) - 2, Math.round(punchY + Math.sin(ang) * dist) - 2, 4, 4);
+          }
+          ctx.restore();
+        }
       }
     };
   }
@@ -1099,6 +1605,179 @@
       }
     }
 
+    const reefSheets = {
+      weed: WEED.map(spriteSheet),
+      tuft: TUFT.map(spriteSheet),
+      kelp: KELP.map(spriteSheet),
+      coral: spriteSheet(CORAL),
+      fan: spriteSheet(FAN),
+      bud: spriteSheet(BUD),
+      reef: spriteSheet(REEF),
+      rock: spriteSheet(ROCK)
+    };
+    const minnowSheets = MINNOW.map(spriteSheet);
+    const patches = {
+      weed: [
+        { kind: "kelp", dx: -16, dy: -8, scale: 3 },
+        { kind: "kelp", dx: 10, dy: -12, scale: 3 },
+        { kind: "kelp", dx: 28, dy: -2, scale: 2 },
+        { kind: "weed", dx: -4, dy: 2, scale: 3 },
+        { kind: "weed", dx: -30, dy: 4, scale: 3 },
+        { kind: "weed", dx: 18, dy: 6, scale: 2 },
+        { kind: "tuft", dx: 2, dy: 8, scale: 3 },
+        { kind: "tuft", dx: -18, dy: 10, scale: 2 },
+        { kind: "tuft", dx: 34, dy: 8, scale: 2 }
+      ],
+      coral: [
+        { kind: "rock", dx: 0, dy: 12, scale: 3 },
+        { kind: "reef", dx: -22, dy: 8, scale: 3 },
+        { kind: "reef", dx: 24, dy: 12, scale: 2 },
+        { kind: "coral", dx: -8, dy: 0, scale: 3 },
+        { kind: "coral", dx: 18, dy: 4, scale: 2 },
+        { kind: "fan", dx: 4, dy: -4, scale: 3 },
+        { kind: "fan", dx: -30, dy: 2, scale: 2 },
+        { kind: "bud", dx: 32, dy: 8, scale: 3 },
+        { kind: "bud", dx: -14, dy: 10, scale: 2 },
+        { kind: "bud", dx: 10, dy: 14, scale: 2 }
+      ]
+    };
+    const minnows = [];
+    for (let i = 0; i < 18; i++) {
+      minnows.push({
+        garden: i % 6,
+        x: (Math.random() - 0.5) * 36,
+        y: -12 - Math.random() * 36,
+        dir: Math.random() < 0.5 ? 1 : -1,
+        speed: 16 + Math.random() * 22,
+        alpha: i % 2 ? 1 : 0,
+        mode: i % 2 ? "go" : "gone",
+        left: i % 2 ? 1.6 + Math.random() * 1.8 : 0.3 + Math.random() * 1.2
+      });
+    }
+
+    function colonyBeds() {
+      const wrap = document.querySelector(".wrap");
+      const column = wrap ? wrap.getBoundingClientRect() : { left: 20, right: window.innerWidth - 20 };
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const wide = column.left > 150;
+      const gutterL = column.left;
+      const gutterR = w - column.right;
+      const spots = wide ? [
+        { x: gutterL * 0.4, y: h * 0.34, flip: 1, kind: "weed" },
+        { x: gutterL * 0.66, y: h * 0.62, flip: -1, kind: "coral" },
+        { x: gutterL * 0.36, y: h * 0.93, flip: 1, kind: "weed" },
+        { x: column.right + gutterR * 0.6, y: h * 0.3, flip: -1, kind: "coral" },
+        { x: column.right + gutterR * 0.38, y: h * 0.58, flip: 1, kind: "weed" },
+        { x: column.right + gutterR * 0.64, y: h * 0.91, flip: -1, kind: "coral" }
+      ] : [
+        { x: 58, y: h - 2, flip: 1, kind: "weed" },
+        { x: w - 58, y: h - 6, flip: -1, kind: "coral" }
+      ];
+      const frame = document.querySelector(".portrait-frame");
+      const photo = frame ? frame.getBoundingClientRect() : null;
+      return spots.map(function (spot) {
+        const span = wide ? 148 : 96;
+        const plants = patches[spot.kind].map(function (plant) {
+          return {
+            kind: plant.kind,
+            dx: Math.round(plant.dx * spot.flip * (wide ? 1 : 0.62)),
+            dy: plant.dy,
+            scale: wide ? plant.scale : Math.max(2, plant.scale - 1)
+          };
+        });
+        const bed = { x: spot.x, y: spot.y, span: span, plants: plants, alpha: wide ? 0.86 : 0.7 };
+        if (!photo || photo.bottom < 0 || photo.top > h) return bed;
+        const top = bed.y - (wide ? 92 : 64);
+        const left = bed.x - span / 2;
+        const right = bed.x + span / 2;
+        const hits = right > photo.left - 6 && left < photo.right + 6 && bed.y > photo.top - 6 && top < photo.bottom + 6;
+        if (!hits) return bed;
+        const below = photo.bottom + (wide ? 70 : 52);
+        if (below < h + 16) return Object.assign({}, bed, { y: below });
+        const edge = bed.x < w / 2 ? Math.min(bed.x, photo.left - span * 0.42) : Math.max(bed.x, photo.right + span * 0.42);
+        return Object.assign({}, bed, { x: Math.max(40, Math.min(w - 40, edge)) });
+      });
+    }
+
+    function bedBox(bed) {
+      return { x: bed.x, y: bed.y, w: bed.span, h: 78 };
+    }
+
+    function stamp(sheet, x, y, scale, alpha) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(
+        sheet,
+        Math.round(x - sheet.width * scale / 2),
+        Math.round(y - sheet.height * scale),
+        sheet.width * scale,
+        sheet.height * scale
+      );
+      ctx.restore();
+    }
+
+    function drawReef(dt, time) {
+      const beds = colonyBeds();
+      if (!isReduced()) {
+        minnows.forEach(function (fish) {
+          if (fish.mode === "go" || fish.mode === "gone") fish.left -= dt;
+          if (fish.mode === "in") {
+            fish.alpha = Math.min(1, fish.alpha + dt * 2.2);
+            if (fish.alpha >= 1) {
+              fish.mode = "go";
+              fish.left = 1.5 + Math.random() * 2.2;
+            }
+          } else if (fish.mode === "go") {
+            const home = bedBox(beds[fish.garden % beds.length]);
+            fish.x += fish.dir * fish.speed * dt;
+            const limit = home.w * 0.48;
+            if (fish.x < -limit || fish.x > limit || fish.left <= 0) fish.mode = "out";
+          } else if (fish.mode === "out") {
+            fish.alpha = Math.max(0, fish.alpha - dt * 2.4);
+            fish.x += fish.dir * fish.speed * dt * 0.65;
+            if (fish.alpha <= 0) {
+              fish.mode = "gone";
+              fish.left = 0.35 + Math.random() * 1.3;
+            }
+          } else if (fish.left <= 0) {
+            fish.garden = Math.floor(Math.random() * beds.length);
+            const home = bedBox(beds[fish.garden]);
+            fish.x = (Math.random() - 0.5) * home.w * 0.8;
+            fish.y = -(8 + Math.random() * home.h * 0.8);
+            fish.dir = Math.random() < 0.5 ? 1 : -1;
+            fish.mode = "in";
+          }
+        });
+      }
+      minnows.forEach(function (fish) {
+        if (fish.alpha <= 0.02) return;
+        const home = bedBox(beds[fish.garden % beds.length]);
+        const sheet = minnowSheets[Math.floor(time * 4 + fish.garden) % minnowSheets.length];
+        ctx.save();
+        ctx.globalAlpha = fish.alpha * 0.92;
+        ctx.translate(Math.round(home.x + fish.x), Math.round(home.y + fish.y));
+        ctx.scale(fish.dir * 2, 2);
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(sheet, -sheet.width / 2, -sheet.height / 2);
+        ctx.restore();
+      });
+      beds.forEach(function (bed, bedIndex) {
+        const home = bedBox(bed);
+        const swayBase = Math.sin(time * 1.15 + bedIndex * 0.8);
+        bed.plants.forEach(function (plant, plantIndex) {
+          const frames = reefSheets[plant.kind];
+          const sheet = frames.length
+            ? frames[Math.floor(time * 1.5 + bedIndex + plantIndex) % frames.length]
+            : frames;
+          const sway = plant.kind === "weed" || plant.kind === "tuft" || plant.kind === "kelp";
+          const lean = sway ? Math.round(swayBase * 2 + Math.sin(time * 1.7 + plantIndex) * 1) : 0;
+          stamp(sheet, home.x + plant.dx + lean, home.y + plant.dy, plant.scale, bed.alpha);
+        });
+      });
+    }
+
     resize();
     window.addEventListener("resize", resize);
     vents.forEach(function (vent) {
@@ -1201,6 +1880,7 @@
       }
 
       drawPixelWaves(w, time);
+      drawReef(dt, time);
 
       for (let i = 0; i < swimmers.length; i++) {
         const fish = swimmers[i];

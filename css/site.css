@@ -360,6 +360,16 @@ h1 {
   min-height: 25rem;
 }
 
+.arcade {
+  position: absolute;
+  left: -26px;
+  top: -26px;
+  width: calc(100% + 52px);
+  height: calc(100% + 52px);
+  z-index: 1;
+  pointer-events: none;
+}
+
 .photo-bubbles {
   position: absolute;
   left: -36px;
@@ -373,6 +383,7 @@ h1 {
 .portrait-frame {
   position: absolute;
   inset: 0;
+  z-index: 2;
   border-radius: 2px;
   overflow: hidden;
   box-shadow: var(--shadow);
@@ -798,6 +809,7 @@ body.dragging .sprite { cursor: grabbing; }
   #lights,
   #sea,
   #bubbles,
+  .arcade,
   .photo-bubbles,
   #pointer,
   #creatures,
