@@ -608,7 +608,7 @@ p { text-wrap: pretty; }
   filter: brightness(1.18) drop-shadow(0 0 8px rgba(255, 248, 224, 0.95));
 }
 
-body.dragging { user-select: none; cursor: grabbing; }
+body.dragging { user-select: none; cursor: grabbing; touch-action: none; }
 body.dragging .sprite { cursor: grabbing; }
 
 .bubble {

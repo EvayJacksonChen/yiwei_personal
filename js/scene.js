@@ -515,7 +515,8 @@
     const sea = setupSea(function () { return reduced; });
     const rainbow = setupRainbow(function () { return reduced; });
     const photoBubbles = setupPhotoBubbles(function () { return reduced; });
-    const cursor = setupCursor(function () { return reduced; });
+    if (sea.useBubbles) sea.useBubbles(photoBubbles);
+    const cursor = setupCursor(function () { return reduced; }, sea);
     const creatures = setupCreatures(lights, function () { return reduced; });
     setupNav();
 
@@ -606,18 +607,26 @@
     };
   }
 
-  function drawGlassBubble(ctx, x, y, radius) {
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(214, 236, 230, 0.34)";
-    ctx.fill();
-    ctx.strokeStyle = "rgba(30, 74, 70, 0.38)";
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(x - radius * 0.28, y - radius * 0.32, Math.max(0.7, radius * 0.22), 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(255, 252, 247, 0.8)";
-    ctx.fill();
+  function drawPixelBubble(ctx, x, y, radius, alpha) {
+    const a = alpha == null ? 1 : alpha;
+    if (a <= 0.02 || radius < 1.2) return;
+    const s = radius < 7 ? 2 : 3;
+    const r = Math.max(s, radius);
+    const qx = Math.round(x);
+    const qy = Math.round(y);
+    ctx.fillStyle = "rgba(63, 118, 110, " + (0.62 * a) + ")";
+    const steps = Math.ceil(r / s);
+    for (let iy = -steps; iy <= steps; iy++) {
+      const py = iy * s;
+      const span = Math.sqrt(Math.max(0, r * r - py * py));
+      if (span < s * 0.35) continue;
+      const left = -Math.round(span / s) * s;
+      const right = Math.round(span / s) * s;
+      ctx.fillRect(qx + left, qy + py, s - 1, s - 1);
+      if (right !== left) ctx.fillRect(qx + right, qy + py, s - 1, s - 1);
+    }
+    ctx.fillStyle = "rgba(255, 252, 247, " + (0.88 * a) + ")";
+    ctx.fillRect(qx - Math.round(r * 0.34), qy - Math.round(r * 0.38), Math.max(1, s - 1), Math.max(1, s - 1));
   }
 
   function setupPhotoBubbles(isReduced) {
@@ -649,18 +658,15 @@
       const edge = Math.random();
       let x;
       let y;
-      if (edge < 0.45) {
+      if (edge < 0.7) {
         x = left + Math.random() * photo.width;
-        y = top + Math.random() * 18;
-      } else if (edge < 0.7) {
-        x = left + Math.random() * 10;
-        y = top + Math.random() * photo.height;
-      } else if (edge < 0.95) {
-        x = left + photo.width - Math.random() * 10;
-        y = top + Math.random() * photo.height;
+        y = top - 18 - Math.random() * 42;
+      } else if (edge < 0.85) {
+        x = left - 14 - Math.random() * 16;
+        y = top + Math.random() * photo.height * 0.28;
       } else {
-        x = left + Math.random() * photo.width;
-        y = top + photo.height - Math.random() * 12;
+        x = left + photo.width + 14 + Math.random() * 16;
+        y = top + Math.random() * photo.height * 0.28;
       }
       bubbles.push({
         x: x,
@@ -674,6 +680,27 @@
       });
     }
 
+    function placeHits() {
+      const box = canvas.getBoundingClientRect();
+      bubbles.forEach(function (bubble) {
+        if (bubble.pop > 0) return;
+        bubble.hx = box.left + bubble.x;
+        bubble.hy = box.top + bubble.y;
+      });
+    }
+
+    function hit(px, py) {
+      for (let i = 0; i < bubbles.length; i++) {
+        const bubble = bubbles[i];
+        if (bubble.pop > 0 || bubble.hr == null) continue;
+        const dx = px - bubble.hx;
+        const dy = py - bubble.hy;
+        const reach = bubble.hr + 5;
+        if (dx * dx + dy * dy <= reach * reach) return bubble;
+      }
+      return null;
+    }
+
     window.addEventListener("resize", fit);
 
     return {
@@ -684,45 +711,50 @@
         ctx.clearRect(0, 0, w, h);
         if (!isReduced()) {
           next -= dt;
-          if (next <= 0 && bubbles.length < 28) {
+          if (next <= 0 && bubbles.length < 8) {
             spawn();
-            if (Math.random() < 0.65) spawn();
-            next = 0.12 + Math.random() * 0.16;
-          }
-          const time = performance.now() / 1000;
-          for (let i = bubbles.length - 1; i >= 0; i--) {
-            const bubble = bubbles[i];
-            if (bubble.pop > 0) {
-              bubble.pop += dt;
-              const rise = Math.max(0, bubble.born - bubble.y);
-              const radius = bubble.r0 + rise * 0.06;
-              const t = bubble.pop / 0.24;
-              ctx.beginPath();
-              ctx.arc(bubble.x, bubble.y, radius * (1 + t * 0.9), 0, Math.PI * 2);
-              ctx.strokeStyle = "rgba(63, 127, 118, " + Math.max(0, 0.7 * (1 - t)) + ")";
-              ctx.lineWidth = 1.3;
-              ctx.stroke();
-              if (t >= 1) bubbles.splice(i, 1);
-              continue;
-            }
-            bubble.y += bubble.vy * dt;
-            bubble.x += bubble.vx * dt + Math.sin(time + bubble.wobble) * 10 * dt;
-            const rise = Math.max(0, bubble.born - bubble.y);
-            const radius = bubble.r0 + rise * 0.06;
-            if (rise > 168 || bubble.y < 8 || radius > 18) {
-              bubble.pop = 0.001;
-              continue;
-            }
-            drawGlassBubble(ctx, bubble.x, bubble.y, radius);
+            next = 0.85 + Math.random() * 0.7;
           }
         }
+        const time = performance.now() / 1000;
+        for (let i = bubbles.length - 1; i >= 0; i--) {
+          const bubble = bubbles[i];
+          if (bubble.pop > 0) {
+            bubble.pop += dt;
+            const rise = Math.max(0, bubble.born - bubble.y);
+            const radius = bubble.r0 + rise * 0.06;
+            const t = bubble.pop / 0.24;
+            drawPixelBubble(ctx, bubble.x, bubble.y, radius * (1 + t * 0.8), Math.max(0, 0.85 * (1 - t)));
+            if (t >= 1) bubbles.splice(i, 1);
+            continue;
+          }
+          if (!isReduced()) {
+            bubble.y += bubble.vy * dt;
+            bubble.x += bubble.vx * dt + Math.sin(time + bubble.wobble) * 10 * dt;
+          }
+          const rise = Math.max(0, bubble.born - bubble.y);
+          const radius = bubble.r0 + rise * 0.06;
+          if (!isReduced() && (rise > 96 || bubble.y < 8 || radius > 14)) {
+            bubble.pop = 0.001;
+            continue;
+          }
+          bubble.hr = radius;
+          drawPixelBubble(ctx, bubble.x, bubble.y, radius);
+        }
+        placeHits();
+      },
+      hit: hit,
+      pop: function (bubble) {
+        if (bubble && bubble.pop === 0) bubble.pop = 0.001;
       }
     };
   }
 
   function setupSea(isReduced) {
     const canvas = document.getElementById("sea");
-    if (!canvas) return { tick: function () {} };
+    if (!canvas) {
+      return { tick: function () {}, over: function () { return false; } };
+    }
     const ctx = canvas.getContext("2d");
     const sheets = {};
     Object.keys(SEA_LIFE).forEach(function (name) {
@@ -730,36 +762,32 @@
     });
     const surferFrames = SURFER.map(spriteSheet);
     const waves = [
-      { y: 0.58, amp: 8, k: 0.010, speed: 0.85, color: "rgba(30, 74, 70, 0.13)" },
-      { y: 0.74, amp: 12, k: 0.008, speed: 0.55, color: "rgba(63, 127, 118, 0.16)" },
-      { y: 0.86, amp: 16, k: 0.006, speed: 0.38, color: "rgba(30, 74, 70, 0.15)" }
+      { y: 0.2, amp: 22, k: 0.016, speed: 0.46, rgb: "30, 74, 70", alpha: 0.2, foam: 0.66 },
+      { y: 0.44, amp: 30, k: 0.012, speed: 0.6, rgb: "47, 112, 104", alpha: 0.22, foam: 0.7 },
+      { y: 0.66, amp: 38, k: 0.009, speed: 0.36, rgb: "30, 74, 70", alpha: 0.22, foam: 0.74 },
+      { y: 0.88, amp: 26, k: 0.018, speed: 0.74, rgb: "26, 68, 64", alpha: 0.2, foam: 0.68 }
+    ];
+    const ventSpots = [
+      [0.06, 0.16], [0.5, 0.1], [0.94, 0.18],
+      [0.03, 0.42], [0.97, 0.5],
+      [0.18, 0.72], [0.82, 0.68],
+      [0.34, 0.3], [0.66, 0.88], [0.5, 0.96]
     ];
     const swimmers = [];
     const drops = [];
     const field = [];
-
-    function makeFieldBubble(mode) {
-      const across = mode === true || mode === "pop";
-      const y = across
-        ? Math.random() * window.innerHeight
-        : window.innerHeight + 16 + Math.random() * 90;
-      return {
-        x: Math.random() * window.innerWidth,
-        y: y,
-        born: y,
-        r0: 3 + Math.random() * (mode === "pop" ? 7 : 11),
-        vy: -(18 + Math.random() * 34),
-        wobble: Math.random() * Math.PI * 2,
-        pop: 0,
-        appear: mode === "pop" ? 0 : 1
-      };
-    }
-
-    for (let i = 0; i < 36; i++) field.push(makeFieldBubble(true));
+    const vents = [];
     let gust = null;
     let nextGust = 6;
     let nextSpawn = 0.4;
-    let nextField = 0.05;
+    let nextField = 0.2;
+    let nowSec = 0;
+    let held = null;
+    let heldId = null;
+    let photoApi = null;
+    let dwellId = null;
+    let dwellStart = 0;
+    const pointer = { x: 0, y: 0, active: false, blocked: false };
     const kinds = ["fish", "shark", "turtle", "diver"];
 
     function resize() {
@@ -767,19 +795,47 @@
       canvas.width = Math.max(1, Math.floor(window.innerWidth * dpr));
       canvas.height = Math.max(1, Math.floor(window.innerHeight * dpr));
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      placeVents();
+    }
+
+    function placeVents() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      ventSpots.forEach(function (spot, i) {
+        if (!vents[i]) vents[i] = { phase: Math.random() * Math.PI * 2 };
+        vents[i].bx = spot[0] * w;
+        vents[i].by = spot[1] * h;
+      });
     }
 
     function level(wave, x, time) {
-      let y = window.innerHeight * wave.y + Math.sin(x * wave.k + time * wave.speed) * wave.amp;
+      let y = window.innerHeight * wave.y
+        + Math.sin(x * wave.k + time * wave.speed) * wave.amp
+        + Math.sin(x * wave.k * 2.15 + time * wave.speed * 1.6 + 1.1) * wave.amp * 0.4;
       if (gust) {
-        const dist = x - gust.x;
-        const reach = Math.abs(dist) / gust.width;
+        const reach = Math.abs(x - gust.x) / gust.width;
         if (reach < 1) {
           const n = Math.cos(reach * Math.PI * 0.5);
-          y += Math.sin(x * wave.k + time * wave.speed + Math.PI) * wave.amp * 3.1 * n * gust.power;
+          y += Math.sin(x * wave.k + time * wave.speed + Math.PI) * wave.amp * 2.5 * n * gust.power;
         }
       }
       return y;
+    }
+
+    function makeFieldBubble(ox, oy, shown) {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const y = Math.max(16, Math.min(h - 12, oy + (Math.random() - 0.5) * 84));
+      return {
+        x: Math.max(10, Math.min(w - 10, ox + (Math.random() - 0.5) * 120)),
+        y: y,
+        born: y,
+        r0: 3 + Math.random() * 7,
+        vy: -(14 + Math.random() * 30),
+        wobble: Math.random() * Math.PI * 2,
+        pop: 0,
+        appear: shown ? 1 : 0
+      };
     }
 
     function spawnSwimmer() {
@@ -789,12 +845,14 @@
       swimmers.push({
         kind: kind,
         sheet: sheet,
-        wave: 1 + Math.floor(Math.random() * 2),
+        wave: 1 + Math.floor(Math.random() * (waves.length - 1)),
         x: fromLeft ? -sheet.width * 3 : window.innerWidth + sheet.width,
         dir: fromLeft ? 1 : -1,
         speed: 36 + Math.random() * 58,
         scale: 2,
-        kick: 0
+        kick: 0,
+        settle: 0,
+        lift: 0
       });
     }
 
@@ -804,13 +862,15 @@
         kind: "surfer",
         frames: surferFrames,
         sheet: surferFrames[0],
-        wave: 2,
+        wave: waves.length - 1,
         x: enter ? window.innerWidth * 0.32 : (fromLeft ? -50 : window.innerWidth + 50),
         dir: enter ? 1 : (fromLeft ? 1 : -1),
         speed: 62 + Math.random() * 24,
         scale: 4,
         surfer: true,
-        kick: 0
+        kick: 0,
+        settle: 0,
+        lift: 0
       });
     }
 
@@ -825,58 +885,290 @@
       };
     }
 
+    function pick(px, py) {
+      for (let i = swimmers.length - 1; i >= 0; i--) {
+        const box = swimmers[i].box;
+        if (!box) continue;
+        if (px >= box.l && px <= box.r && py >= box.t && py <= box.b) return swimmers[i];
+      }
+      return null;
+    }
+
+    function nearestWave(x, y) {
+      let best = 1;
+      let bestDist = Infinity;
+      for (let i = 1; i < waves.length; i++) {
+        const dist = Math.abs(level(waves[i], x, nowSec) - y);
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = i;
+        }
+      }
+      return best;
+    }
+
+    function onBlockedControl(target) {
+      return !!(target && target.closest && target.closest("a, button, input, textarea, select, label, .creature, .skip"));
+    }
+
+    function fieldHit(px, py) {
+      for (let i = 0; i < field.length; i++) {
+        const bubble = field[i];
+        if (bubble.pop > 0 || bubble.hr == null) continue;
+        const dx = px - bubble.x;
+        const dy = py - bubble.y;
+        const reach = bubble.hr + 5;
+        if (dx * dx + dy * dy <= reach * reach) return bubble;
+      }
+      return null;
+    }
+
+    function breakField(bubble) {
+      if (bubble && bubble.pop === 0) bubble.pop = 0.001;
+    }
+
+    function topBubble(px, py) {
+      const photoHit = photoApi && photoApi.hit ? photoApi.hit(px, py) : null;
+      if (photoHit) {
+        return {
+          id: photoHit,
+          pop: function () { photoApi.pop(photoHit); }
+        };
+      }
+      const seaHit = fieldHit(px, py);
+      if (!seaHit) return null;
+      return {
+        id: seaHit,
+        pop: function () { breakField(seaHit); }
+      };
+    }
+
+    function nudge(fish) {
+      if (fish.speed > 36) {
+        fish.speed = Math.round(fish.speed * 0.32);
+        fish.brake = 0.2;
+      } else if (fish.speed > 8) {
+        fish.speed = 0;
+        fish.brake = 0.2;
+      } else {
+        fish.speed = fish.surfer ? 168 : 128;
+        fish.x += fish.dir * 18;
+        fish.boost = 0.45;
+      }
+    }
+
+    function notePointer(event) {
+      pointer.x = event.clientX;
+      pointer.y = event.clientY;
+      pointer.active = true;
+      pointer.blocked = onBlockedControl(event.target);
+    }
+
+    function grab(event) {
+      if (event.button != null && event.button !== 0) return;
+      notePointer(event);
+      if (held || pointer.blocked) return;
+      const fish = pick(event.clientX, event.clientY);
+      if (fish && fish.drawX != null) {
+        event.preventDefault();
+        event.stopPropagation();
+        const index = swimmers.indexOf(fish);
+        if (index >= 0 && index !== swimmers.length - 1) {
+          swimmers.splice(index, 1);
+          swimmers.push(fish);
+        }
+        fish.hold = true;
+        fish.settle = 0;
+        fish.hx = fish.drawX;
+        fish.hy = fish.drawY;
+        fish.grabX = event.clientX - fish.drawX;
+        fish.grabY = event.clientY - fish.drawY;
+        fish.dragDX = 0;
+        fish.dragDY = 0;
+        fish.originX = event.clientX;
+        fish.originY = event.clientY;
+        fish.flick = 0;
+        fish.marks = [{ x: event.clientX, t: performance.now() }];
+        held = fish;
+        heldId = event.pointerId;
+        dwellId = null;
+        document.body.classList.add("dragging");
+        try { document.body.setPointerCapture(event.pointerId); } catch (err) { /* pointer already gone */ }
+        return;
+      }
+      const bubble = topBubble(event.clientX, event.clientY);
+      if (!bubble) return;
+      event.preventDefault();
+      event.stopPropagation();
+      bubble.pop();
+      dwellId = null;
+    }
+
+    function moveHold(event) {
+      notePointer(event);
+      if (!held || event.pointerId !== heldId) return;
+      event.preventDefault();
+      held.dragDX = event.clientX - held.originX;
+      held.dragDY = event.clientY - held.originY;
+      held.hx = Math.max(16, Math.min(window.innerWidth - 16, event.clientX - held.grabX));
+      held.hy = Math.max(20, Math.min(window.innerHeight - 12, event.clientY - held.grabY));
+      const t = performance.now();
+      held.marks.push({ x: event.clientX, t: t });
+      const cutoff = t - 90;
+      while (held.marks.length && held.marks[0].t < cutoff) held.marks.shift();
+      const first = held.marks[0];
+      const span = t - first.t;
+      held.flick = span > 16 ? (event.clientX - first.x) / (span / 1000) : 0;
+    }
+
+    function dropHold(event) {
+      if (!held) return;
+      if (event && event.pointerId != null && event.pointerId !== heldId) return;
+      const fish = held;
+      const dist = Math.hypot(fish.dragDX || 0, fish.dragDY || 0);
+      fish.hold = false;
+      held = null;
+      heldId = null;
+      document.body.classList.remove("dragging");
+      if (dist < 9) {
+        nudge(fish);
+        return;
+      }
+      fish.x = fish.hx;
+      fish.wave = nearestWave(fish.hx, fish.hy);
+      fish.lift = fish.hy - level(waves[fish.wave], fish.x, nowSec);
+      fish.settle = 0.45;
+      if (Math.abs(fish.dragDX) > 8) fish.dir = fish.dragDX > 0 ? 1 : -1;
+      const flick = fish.flick || 0;
+      if (Math.abs(flick) < 50) {
+        fish.speed = Math.min(fish.speed, 14);
+        fish.brake = 0.2;
+      } else {
+        fish.speed = Math.max(80, Math.min(230, Math.abs(flick)));
+        fish.boost = 0.4;
+      }
+    }
+
+    function dwell(now) {
+      if (!pointer.active || pointer.blocked || held) {
+        dwellId = null;
+        return;
+      }
+      const bubble = topBubble(pointer.x, pointer.y);
+      const id = bubble ? bubble.id : null;
+      if (id !== dwellId) {
+        dwellId = id;
+        dwellStart = now;
+        return;
+      }
+      if (bubble && now - dwellStart >= 500) {
+        bubble.pop();
+        dwellId = null;
+      }
+    }
+
+    function drawPixelWaves(w, time) {
+      const step = 6;
+      waves.forEach(function (wave, index) {
+        let prev = null;
+        for (let x = 0; x <= w; x += step) {
+          const y = Math.round(level(wave, x, time) / step) * step;
+          ctx.fillStyle = "rgba(" + wave.rgb + ", " + wave.alpha + ")";
+          ctx.fillRect(x, y, step - 1, step - 1);
+          ctx.fillStyle = "rgba(" + wave.rgb + ", " + (wave.alpha * 0.4) + ")";
+          ctx.fillRect(x, y + step, step - 1, step - 1);
+          const rising = prev != null && prev - y >= step;
+          if (rising) {
+            ctx.fillStyle = "rgba(255, 252, 247, " + wave.foam + ")";
+            ctx.fillRect(x, y - step, step - 1, step - 1);
+            if (index >= 2) ctx.fillRect(x + 1, y - step * 2, 2, 2);
+          }
+          if (index === waves.length - 1 && (x / step) % 2 === 0) {
+            ctx.fillStyle = "rgba(63, 127, 118, 0.06)";
+            ctx.fillRect(x, y + step * 2, step - 1, step * 2 - 1);
+          }
+          prev = y;
+        }
+      });
+      const glitter = waves[1];
+      for (let x = 0; x < w; x += 18) {
+        if (Math.sin(x * 0.05 + time * 1.5) < 0.55) continue;
+        const y = level(glitter, x, time) - 14;
+        ctx.fillStyle = "rgba(255, 252, 247, 0.7)";
+        ctx.fillRect(Math.round(x / 4) * 4, Math.round(y / 4) * 4, 3, 3);
+      }
+    }
+
     resize();
     window.addEventListener("resize", resize);
+    vents.forEach(function (vent) {
+      field.push(makeFieldBubble(vent.bx, vent.by, true));
+      field.push(makeFieldBubble(vent.bx, vent.by, true));
+    });
     spawnSwimmer();
     spawnSurfer(true);
+    document.addEventListener("pointerdown", grab, true);
+    window.addEventListener("pointermove", moveHold, { passive: false });
+    window.addEventListener("pointerup", dropHold);
+    window.addEventListener("pointercancel", dropHold);
+    window.addEventListener("pointerleave", function () { pointer.active = false; });
+    window.addEventListener("blur", function () {
+      pointer.active = false;
+      dropHold();
+    });
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) dropHold();
+    });
 
     function tick(dt, now) {
       const w = window.innerWidth;
       const h = window.innerHeight;
       const time = isReduced() ? 0 : now / 1000;
+      nowSec = time;
       ctx.clearRect(0, 0, w, h);
+
+      if (!isReduced()) {
+        vents.forEach(function (vent) {
+          vent.x = vent.bx + Math.sin(time * 0.35 + vent.phase) * 28;
+          vent.y = vent.by + Math.cos(time * 0.27 + vent.phase) * 18;
+        });
+      }
+
       for (let i = field.length - 1; i >= 0; i--) {
         const bubble = field[i];
         if (!isReduced() && bubble.pop === 0) {
           bubble.y += bubble.vy * dt;
-          bubble.x += Math.sin(time * 0.7 + bubble.wobble) * 18 * dt;
+          bubble.x += Math.sin(time * 0.7 + bubble.wobble) * 16 * dt;
           if (bubble.appear < 1) bubble.appear = Math.min(1, bubble.appear + dt * 3.2);
         }
         const rise = Math.max(0, bubble.born - bubble.y);
-        const radius = (bubble.r0 + rise * 0.04) * (bubble.appear == null ? 1 : bubble.appear);
+        const radius = bubble.r0 + rise * 0.035;
+        const shown = bubble.appear == null ? 1 : bubble.appear;
+        bubble.hr = bubble.pop > 0 ? null : radius;
         if (bubble.pop > 0) {
           bubble.pop += dt;
           const t = bubble.pop / 0.28;
-          ctx.beginPath();
-          ctx.arc(bubble.x, bubble.y, radius * (1 + t), 0, Math.PI * 2);
-          ctx.strokeStyle = "rgba(63, 127, 118, " + Math.max(0, 0.45 * (1 - t)) + ")";
-          ctx.lineWidth = 1.2;
-          ctx.stroke();
+          drawPixelBubble(ctx, bubble.x, bubble.y, radius * (1 + t), Math.max(0, shown * (1 - t)));
           if (t >= 1) field.splice(i, 1);
           continue;
         }
-        if (bubble.y < 18 || rise > h * 0.92) {
+        if (bubble.y < 18 || rise > h * 0.72) {
           bubble.pop = 0.001;
           continue;
         }
-        ctx.beginPath();
-        ctx.arc(bubble.x, bubble.y, radius, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(214, 236, 230, 0.28)";
-        ctx.fill();
-        ctx.strokeStyle = "rgba(30, 74, 70, 0.28)";
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(bubble.x - radius * 0.28, bubble.y - radius * 0.32, Math.max(0.8, radius * 0.22), 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255, 252, 247, 0.75)";
-        ctx.fill();
+        drawPixelBubble(ctx, bubble.x, bubble.y, radius, shown);
       }
+
       if (!isReduced()) {
         nextField -= dt;
-        while (nextField <= 0 && field.length < 58) {
-          field.push(makeFieldBubble("pop"));
-          if (Math.random() < 0.45) field.push(makeFieldBubble(false));
-          nextField += 0.11 + Math.random() * 0.16;
+        if (nextField <= 0 && field.length < 46) {
+          if (Math.random() < 0.68) {
+            const vent = vents[Math.floor(Math.random() * vents.length)];
+            field.push(makeFieldBubble(vent.x || vent.bx, vent.y || vent.by, false));
+          } else {
+            field.push(makeFieldBubble(Math.random() * w, Math.random() * h, false));
+          }
+          nextField = 0.22 + Math.random() * 0.28;
         }
         nextGust -= dt;
         nextSpawn -= dt;
@@ -896,9 +1188,10 @@
           if ((gust.vx > 0 && gust.x > w + gust.width) || (gust.vx < 0 && gust.x < -gust.width)) {
             gust = null;
           } else if (Math.random() < 0.45) {
+            const crest = waves[waves.length - 1];
             drops.push({
               x: gust.x,
-              y: level(waves[2], gust.x, time),
+              y: level(crest, gust.x, time),
               vx: (Math.random() - 0.5) * 40,
               vy: -30 - Math.random() * 50,
               life: 0.7 + Math.random() * 0.4
@@ -907,28 +1200,13 @@
         }
       }
 
-      waves.forEach(function (wave, index) {
-        ctx.beginPath();
-        for (let x = 0; x <= w; x += 8) {
-          const y = level(wave, x, time);
-          if (x === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        }
-        ctx.strokeStyle = wave.color;
-        ctx.lineWidth = index === 2 ? 1.6 : 1.15;
-        ctx.stroke();
-        if (index === 2) {
-          ctx.lineTo(w, h);
-          ctx.lineTo(0, h);
-          ctx.closePath();
-          ctx.fillStyle = gust ? "rgba(176, 214, 204, 0.16)" : "rgba(63, 127, 118, 0.045)";
-          ctx.fill();
-        }
-      });
+      drawPixelWaves(w, time);
 
-      for (let i = swimmers.length - 1; i >= 0; i--) {
+      for (let i = 0; i < swimmers.length; i++) {
         const fish = swimmers[i];
-        if (!isReduced()) {
+        if (fish.boost > 0) fish.boost = Math.max(0, fish.boost - dt);
+        if (fish.brake > 0) fish.brake = Math.max(0, fish.brake - dt);
+        if (!fish.hold && !isReduced() && fish.speed > 0) {
           if (gust && Math.abs(fish.x - gust.x) < gust.width * 0.45) fish.kick = 0.55;
           if (fish.kick > 0) {
             fish.x += gust.vx * dt * 0.35;
@@ -936,18 +1214,48 @@
           }
           fish.x += fish.dir * fish.speed * dt;
         }
-        if (fish.x < -80 || fish.x > w + 80) {
+        if (!fish.hold && (fish.x < -80 || fish.x > w + 80)) {
           swimmers.splice(i, 1);
+          i -= 1;
           continue;
         }
-        const y = level(waves[fish.wave], fish.x, time);
-        const ahead = level(waves[fish.wave], fish.x + 12 * fish.dir, time);
+        const wave = waves[fish.wave] || waves[waves.length - 1];
+        const waveY = level(wave, fish.hold ? fish.hx : fish.x, time);
+        const ax = fish.hold ? fish.hx : fish.x;
+        let ay = waveY;
+        if (fish.hold) ay = fish.hy;
+        else if (fish.settle > 0) {
+          fish.settle = Math.max(0, fish.settle - dt);
+          ay = waveY + fish.lift * (fish.settle / 0.45);
+        }
+        const ahead = level(wave, ax + 12 * fish.dir, time);
         if (fish.frames) fish.sheet = fish.frames[Math.floor(time * 4) % fish.frames.length];
         const sheet = fish.sheet;
-        const scale = fish.scale || 2;
+        const scale = (fish.scale || 2) * (fish.hold ? 1.12 : 1) * (fish.brake > 0 ? 0.92 : 1) * (fish.boost > 0 ? 1.06 : 1);
+        const sw = sheet.width * scale;
+        const sh = sheet.height * scale;
+        const pad = 14;
+        fish.drawX = ax;
+        fish.drawY = ay;
+        fish.box = {
+          l: ax - sw / 2 - pad,
+          t: ay - sh - pad,
+          r: ax + sw / 2 + pad,
+          b: ay + pad
+        };
         ctx.save();
-        ctx.translate(fish.x, y);
-        ctx.rotate(Math.atan2(ahead - y, 12));
+        ctx.translate(Math.round(ax), Math.round(ay));
+        ctx.rotate(fish.hold ? 0 : Math.atan2(ahead - waveY, 12));
+        if (fish.hold) {
+          ctx.fillStyle = "rgba(36, 51, 48, 0.2)";
+          ctx.fillRect(-12, 3, 24, 3);
+        }
+        if (fish.boost > 0) {
+          const back = -fish.dir * (sw * 0.5 + 8);
+          ctx.fillStyle = "rgba(255, 252, 247, 0.85)";
+          ctx.fillRect(back, -sh * 0.55, 3, 3);
+          ctx.fillRect(back - fish.dir * 7, -sh * 0.35, 2, 2);
+        }
         ctx.scale(fish.dir * scale, scale);
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(sheet, -sheet.width / 2, -sheet.height);
@@ -965,14 +1273,19 @@
         drop.x += drop.vx * dt;
         drop.y += drop.vy * dt;
         ctx.fillStyle = "rgba(255, 252, 247, " + Math.max(0, drop.life) + ")";
-        ctx.fillRect(drop.x, drop.y, 2, 2);
+        ctx.fillRect(Math.round(drop.x), Math.round(drop.y), 2, 2);
       }
+      dwell(now);
     }
 
-    return { tick: tick };
+    return {
+      tick: tick,
+      over: function (x, y) { return !!pick(x, y) || !!topBubble(x, y); },
+      useBubbles: function (api) { photoApi = api; }
+    };
   }
 
-  function setupCursor(isReduced) {
+  function setupCursor(isReduced, sea) {
     const fine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
     const host = document.getElementById("pointer");
     const bubbleCanvas = document.getElementById("bubbles");
@@ -1004,7 +1317,8 @@
       tx = event.clientX;
       ty = event.clientY;
       active = !typing;
-      hot = !typing && !!(target && target.closest("a, button, .sprite"));
+      const overWave = !!(sea && sea.over && sea.over(event.clientX, event.clientY));
+      hot = !typing && (overWave || !!(target && target.closest("a, button, .sprite")));
       host.style.display = active ? "block" : "none";
       document.body.classList.toggle("sea-cursor", active);
     }
@@ -1065,11 +1379,7 @@
           if (bubble.pop > 0) {
             bubble.pop += dt;
             const t = bubble.pop / 0.22;
-            bctx.beginPath();
-            bctx.arc(bubble.x, bubble.y, bubble.r * (1 + t * 0.8), 0, Math.PI * 2);
-            bctx.strokeStyle = "rgba(63, 127, 118, " + Math.max(0, 1 - t) + ")";
-            bctx.lineWidth = 1.2;
-            bctx.stroke();
+            drawPixelBubble(bctx, bubble.x, bubble.y, bubble.r * (1 + t * 0.8), Math.max(0, 1 - t));
             if (t >= 1) bubbles.splice(i, 1);
             continue;
           }
@@ -1081,17 +1391,7 @@
             bubble.pop = 0.001;
             continue;
           }
-          bctx.beginPath();
-          bctx.arc(bubble.x, bubble.y, bubble.r, 0, Math.PI * 2);
-          bctx.fillStyle = "rgba(214, 236, 230, 0.35)";
-          bctx.fill();
-          bctx.strokeStyle = "rgba(30, 74, 70, 0.55)";
-          bctx.lineWidth = 1;
-          bctx.stroke();
-          bctx.beginPath();
-          bctx.arc(bubble.x - bubble.r * 0.28, bubble.y - bubble.r * 0.3, Math.max(0.6, bubble.r * 0.22), 0, Math.PI * 2);
-          bctx.fillStyle = "rgba(255, 252, 247, 0.8)";
-          bctx.fill();
+          drawPixelBubble(bctx, bubble.x, bubble.y, bubble.r);
         }
       }
     };
