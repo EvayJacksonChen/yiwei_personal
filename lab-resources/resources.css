@@ -62,3 +62,29 @@
   .partner-grid{grid-template-columns:1fr}
   .placeholder{padding:28px 24px}
 }
+
+/* Timelines: one per dataset group, shared 2023-2026 axis, oldest -> newest */
+.timeline{position:relative;list-style:none;margin:28px 0 12px;padding:0 0 28px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0 20px;border-bottom:1px solid var(--line)}
+.timeline:before{content:'';position:absolute;left:0;right:0;top:52px;height:3px;border-radius:2px;background:linear-gradient(90deg,var(--sky),var(--blue))}
+.timeline:after{content:'';position:absolute;right:-2px;top:47px;border:6.5px solid transparent;border-left:10px solid var(--blue)}
+.tl-year{position:relative;min-width:0}
+.tl-label{display:block;font:700 1.75rem/1 Manrope,Arial,sans-serif;letter-spacing:-.04em;color:var(--ink);height:40px}
+.tl-year:before{content:'';position:absolute;left:0;top:46px;width:15px;height:15px;border-radius:50%;background:var(--blue);box-shadow:0 0 0 4px #fff}
+.tl-year.empty:before{background:#fff;border:3px solid var(--sky);box-sizing:border-box}
+.tl-year.empty .tl-label{color:#9fb6c8}
+.tl-items{list-style:none;margin:36px 0 0;padding:0;display:grid;gap:10px}
+.tl-items a{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:10px;background:var(--pale);border:1px solid transparent;transition:border-color .2s,transform .2s}
+.tl-items a:hover{border-color:var(--accent);transform:translateY(-2px)}
+.tl-items b{font:700 1.0625rem/1.3 Manrope,Arial,sans-serif;letter-spacing:-.02em;color:var(--ink)}
+.tl-venue{font-size:.6875rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--blue)}
+.tl-text{font-size:.8125rem;line-height:1.45;color:var(--muted);margin-top:2px}
+@media(max-width:700px){
+  .timeline{grid-template-columns:1fr;gap:18px;padding:0 0 24px 30px}
+  .timeline:before{left:6px;right:auto;top:6px;bottom:24px;width:3px;height:auto;background:linear-gradient(180deg,var(--sky),var(--blue))}
+  .timeline:after{display:none}
+  .tl-year:before{left:-30px;top:6px}
+  .tl-label{height:auto;font-size:1.375rem}
+  .tl-items{margin-top:10px}
+  .tl-year.empty .tl-items{display:none}
+}
+@media(prefers-reduced-motion:reduce){.tl-items a{transition:none}}
