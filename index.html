@@ -8,7 +8,7 @@
   <meta name="author" content="Yiwei Chen">
   <meta name="robots" content="index, follow">
   <meta name="color-scheme" content="light">
-  <meta name="theme-color" content="#f3f0e8">
+  <meta name="theme-color" content="#f4f0e7">
   <link rel="canonical" href="https://yiweichen.org/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Yiwei Chen">
@@ -25,7 +25,7 @@
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500;1,600&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,560;1,9..144,500&family=Outfit:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400;1,9..144,500&family=Outfit:wght@300;400;500&family=Silkscreen&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/site.css">
   <script type="application/ld+json">
   {
@@ -51,157 +51,262 @@
   }
   </script>
 </head>
-<body>
-  <canvas id="lights" aria-hidden="true"></canvas>
-  <canvas id="sea" aria-hidden="true"></canvas>
-  <canvas id="bubbles" aria-hidden="true"></canvas>
+<body data-tone="light">
+  <canvas id="ocean" aria-hidden="true"></canvas>
+  <canvas id="trail" aria-hidden="true"></canvas>
   <div id="pointer" aria-hidden="true"></div>
-  <div class="page">
-    <a class="skip" href="#about">Skip to content</a>
-    <header class="top">
-      <div class="wrap top-inner">
-        <a class="brand" href="#top">Yiwei Chen</a>
-        <div class="top-side">
-          <nav class="nav" aria-label="Sections">
-            <a href="#about">About</a>
-            <a href="#publications">Publications</a>
-            <a href="#news">News</a>
-            <a href="#experience">Experience</a>
-          </nav>
-          <time class="clock" id="clock">
-            <span class="clock-time" id="clock-time">--:--:--</span>
-            <span class="clock-zone" id="clock-zone">HKT</span>
-          </time>
+  <a class="skip" href="#about">Skip to content</a>
+
+  <header class="top">
+    <div class="top-inner">
+      <a class="brand" href="#top">Yiwei Chen</a>
+      <nav class="nav" aria-label="Sections">
+        <a href="#about">About</a>
+        <a href="#publications">Publications</a>
+        <a href="#news">News</a>
+        <a href="#experience">Experience</a>
+      </nav>
+      <div class="top-side">
+        <button class="vision-toggle" id="vision-toggle" type="button" aria-pressed="false" title="Vision mode (V)">
+          <span class="eye" aria-hidden="true"></span><span class="px">Vision</span>
+        </button>
+        <time class="clock" id="clock">
+          <span class="clock-time" id="clock-time">--:--:--</span>
+          <span class="clock-zone px" id="clock-zone">HKT</span>
+        </time>
+      </div>
+    </div>
+  </header>
+
+  <aside class="gauge" id="gauge" aria-label="Depth gauge">
+    <p class="gauge-read px"><span id="depth-num">0</span><small>m</small></p>
+    <p class="gauge-zone px" id="depth-zone">Surface</p>
+    <p class="gauge-atm px" id="depth-atm">1 atm</p>
+    <div class="gauge-rail" id="gauge-rail">
+      <span class="gauge-sub" id="gauge-sub" aria-hidden="true"></span>
+    </div>
+  </aside>
+
+  <div class="dive-tip" id="dive-tip" role="status" aria-live="polite" hidden>
+    <span class="dive-tip-arrow px" id="dive-tip-arrow">▼</span><span class="dive-tip-text" id="dive-tip-text"></span>
+  </div>
+
+  <main class="page" id="page">
+    <section class="zone zone-surface" id="top" data-tone="light" aria-label="Introduction">
+      <div class="wrap hero">
+        <div class="hero-copy">
+          <p class="hello" id="hello">
+            <button class="day-mark" id="day-mark" type="button" aria-label="Change the time of day"><canvas id="hello-mark" width="16" height="16" aria-hidden="true"></canvas></button>
+            <span id="hello-text">Good afternoon</span>
+          </p>
+          <p class="kicker px">HKUST · Computer Science and Engineering</p>
+          <h1>Yiwei Chen</h1>
+          <p class="topic">Marine Vision Intelligence</p>
+          <p class="role">PhD student at CSE, The Hong Kong University of Science and Technology.</p>
+          <ul class="links">
+            <li><a href="mailto:jackson.chen.yiwei@gmail.com"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1.5"></rect><path d="M4 7l8 6 8-6"></path></svg>Email</a></li>
+            <li><a href="https://scholar.google.com/citations?user=1xsk9rYAAAAJ&hl=en" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="solid" d="M12 3 1.5 9 12 15l8.2-4.5V17h2.3V9L12 3zM7 12.4V16c1.6 1.4 8.4 1.4 10 0v-3.6L12 15l-5-2.6z"></path></svg>Google Scholar</a></li>
+            <li><a href="https://github.com/EvayJacksonChen" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 6v-3.9a3.4 3.4 0 0 0-.9-2.6c3.1-.4 6.4-1.5 6.4-7A5.4 5.4 0 0 0 19 5.3 5 5 0 0 0 18.9 1.5S17.7 1.1 15 2.9a13 13 0 0 0-6 0C6.3 1.1 5.1 1.5 5.1 1.5A5 5 0 0 0 5 5.3a5.4 5.4 0 0 0-1.5 3.8c0 5.4 3.3 6.6 6.4 7a3.4 3.4 0 0 0-.9 2.6V22"></path></svg>GitHub</a></li>
+            <li><a href="https://www.linkedin.com/in/yiwei-chen-0a36b2317/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9v12"></path><circle cx="6" cy="4.5" r="1.5"></circle><path d="M10 20v-7a4 4 0 0 1 8 0v7"></path><path d="M10 12v8"></path></svg>LinkedIn</a></li>
+            <li><a href="https://x.com/_yiweichen" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="solid" d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>X</a></li>
+          </ul>
+        </div>
+        <div class="portrait-wrap" id="portrait">
+          <canvas class="arcade" id="arcade" aria-hidden="true"></canvas>
+          <canvas class="photo-bubbles" id="photo-bubbles" aria-hidden="true"></canvas>
+          <button class="portrait-frame" id="portrait-frame" type="button" aria-label="Scan the portrait">
+            <img class="portrait" src="assets/bio-photo.jpg" width="645" height="566" alt="Portrait of Yiwei Chen in Hong Kong.">
+            <span class="ghost ghost-r" aria-hidden="true"></span>
+            <span class="ghost ghost-c" aria-hidden="true"></span>
+            <span class="glitch" aria-hidden="true"></span>
+            <span class="burst" aria-hidden="true"></span>
+            <span class="sil" aria-hidden="true"><span></span></span>
+            <span class="flash" aria-hidden="true"></span>
+            <span class="scanline" aria-hidden="true"></span>
+          </button>
+          <p class="who-text px" aria-hidden="true">
+            <span class="who-q">Who's that<br>Human?!</span>
+            <span class="who-a">It's Yiwei!</span>
+          </p>
+          <span class="det-tag px" aria-hidden="true"><span class="det-guess">Human<span class="unsure">..?</span> <b>0.51</b></span><span class="det-known">Yiwei <b>0.99</b></span></span>
+          <div class="scan-card" aria-hidden="true">
+            <div class="scan-progress">
+              <p class="px"><span id="scan-label">Analyzing silhouette</span><span id="scan-pct">000%</span></p>
+              <div class="scan-bar"><i id="scan-bar"></i></div>
+            </div>
+            <div class="scan-result">
+              <p class="scan-title px"><span class="dex-no">No.001</span> Yiwei Chen <small>陈奕玮</small></p>
+              <p class="dex-types px"><span class="type water">Water</span><span class="type vision">Vision</span></p>
+              <dl>
+                <div style="--i:0"><dt>Class</dt><dd>Human, confirmed <em>0.99</em></dd></div>
+                <div style="--i:1"><dt>Role</dt><dd>PhD student · HKUST CSE</dd></div>
+                <div style="--i:2"><dt>Moves</dt><dd>Segmentation · Recognition</dd></div>
+                <div style="--i:3"><dt>Habitat</dt><dd>Hong Kong · sunlit zone</dd></div>
+                <div style="--i:4"><dt>Ability</dt><dd class="ok">Friendly. Loves the sea.</dd></div>
+              </dl>
+            </div>
+          </div>
         </div>
       </div>
-    </header>
 
-    <main id="top">
       <div class="wrap">
-        <section class="hero" aria-label="Introduction">
-          <div class="hero-copy">
-            <p class="hello" id="hello"><canvas id="hello-mark" width="16" height="16" aria-hidden="true"></canvas><span id="hello-text">Good afternoon</span></p>
-            <p class="kicker">HKUST · Computer Science and Engineering</p>
-            <h1>Yiwei Chen</h1>
-            <p class="topic">Marine Vision Intelligence</p>
-            <p class="role">PhD student at CSE, The Hong Kong University of Science and Technology.</p>
-            <ul class="links">
-              <li><a href="mailto:jackson.chen.yiwei@gmail.com"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1.5"></rect><path d="M4 7l8 6 8-6"></path></svg>Email</a></li>
-              <li><a href="https://scholar.google.com/citations?user=1xsk9rYAAAAJ&hl=en" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="solid" d="M12 3 1.5 9 12 15l8.2-4.5V17h2.3V9L12 3zM7 12.4V16c1.6 1.4 8.4 1.4 10 0v-3.6L12 15l-5-2.6z"></path></svg>Google Scholar</a></li>
-              <li><a href="https://github.com/EvayJacksonChen" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 6v-3.9a3.4 3.4 0 0 0-.9-2.6c3.1-.4 6.4-1.5 6.4-7A5.4 5.4 0 0 0 19 5.3 5 5 0 0 0 18.9 1.5S17.7 1.1 15 2.9a13 13 0 0 0-6 0C6.3 1.1 5.1 1.5 5.1 1.5A5 5 0 0 0 5 5.3a5.4 5.4 0 0 0-1.5 3.8c0 5.4 3.3 6.6 6.4 7a3.4 3.4 0 0 0-.9 2.6V22"></path></svg>GitHub</a></li>
-              <li><a href="https://www.linkedin.com/in/yiwei-chen-0a36b2317/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9v12"></path><circle cx="6" cy="4.5" r="1.5"></circle><path d="M10 20v-7a4 4 0 0 1 8 0v7"></path><path d="M10 12v8"></path></svg>LinkedIn</a></li>
-              <li><a href="https://x.com/_yiweichen" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="solid" d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>X</a></li>
-            </ul>
-          </div>
-          <div class="portrait-wrap">
-            <canvas class="arcade" id="arcade" aria-hidden="true"></canvas>
-            <canvas class="photo-bubbles" id="photo-bubbles" aria-hidden="true"></canvas>
-            <div class="portrait-frame"><img class="portrait" src="assets/bio-photo.jpg" width="645" height="566" alt="Portrait of Yiwei Chen in Hong Kong."></div>
-          </div>
-        </section>
-
         <p class="lining">
-          <canvas class="rainbow" id="rainbow" width="640" height="92" aria-hidden="true"></canvas>
+          <canvas class="rainbow" id="rainbow" aria-hidden="true"></canvas>
           <span>&ldquo;Every Cloud Has a Silver Lining.&rdquo;</span>
         </p>
+      </div>
 
-        <section id="about">
+      <div class="surface-band">
+        <a class="dive px" href="#about"><span aria-hidden="true">▼</span> Dive</a>
+      </div>
+    </section>
+
+    <section class="zone zone-sunlit" id="about" data-tone="light">
+      <div class="stage" aria-hidden="true"></div>
+      <div class="wrap zone-grid">
+        <header class="zone-head">
+          <p class="zone-no px">01</p>
           <h2>About</h2>
+          <p class="zone-meta px">Sunlit zone<span class="sep"> · </span><br>0 – 200 m</p>
+        </header>
+        <div class="zone-body prose">
           <p>I am Yiwei Chen, also Jackson, a third-year PhD student in the Department of Computer Science and Engineering at The Hong Kong University of Science and Technology.</p>
           <p>I work on computer vision for marine and biology studies: recognition, and the problems that sit between 2D and 3D vision. At HKUST I work closely with Prof. <a href="https://zhengziqiang.github.io/" target="_blank" rel="noopener noreferrer">Ziqiang Zheng</a> (UESTC) and am supervised by Prof. <a href="http://saikit.org/" target="_blank" rel="noopener noreferrer">Sai-Kit Yeung</a>.</p>
           <p>If you would like to talk about the work, or about a collaboration, write to <a href="mailto:jackson.chen.yiwei@gmail.com">jackson.chen.yiwei@gmail.com</a> or <a href="mailto:ychenmb@connect.ust.hk">ychenmb@connect.ust.hk</a>.</p>
-        </section>
+        </div>
+      </div>
+      <div class="shelf" aria-hidden="true"></div>
+    </section>
 
-        <section id="publications">
+    <section class="zone zone-twilight" id="publications" data-tone="dark">
+      <div class="stage" aria-hidden="true"></div>
+      <div class="wrap zone-grid">
+        <header class="zone-head">
+          <p class="zone-no px">02</p>
           <h2>Publications</h2>
-
+          <p class="zone-meta px">Twilight zone<span class="sep"> · </span><br>200 – 1,000 m</p>
+        </header>
+        <div class="zone-body">
           <article class="pub">
-            <p class="venue">RA-L · 2026</p>
+            <p class="venue px">RA-L · 2026</p>
             <h3>MaskGuide: Efficient Distillation for Deployable Lightweight Segmentation in Marine Environments</h3>
             <p class="authors">Xinrui Wu, Ziqiang Zheng, <span class="me">Yiwei Chen*</span>, Zeyu Ma, Yang Yang, Sai-Kit Yeung</p>
           </article>
 
           <article class="pub">
-            <p class="venue">WACV · 2026</p>
+            <p class="venue px">WACV · 2026</p>
             <h3><a href="https://arxiv.org/pdf/2512.21150" target="_blank" rel="noopener noreferrer">ORCA: Object Recognition and Comprehension for Archiving Marine Species</a></h3>
             <p class="authors">Yuk-Kwan Wong, Haixin Liang, Zeyu Ma, <span class="me">Yiwei Chen*</span>, Ziqiang Zheng, Rinaldi Gotama, Pascal Sebastian, Lauren D. Sparks, Sai-Kit Yeung</p>
-            <p class="flags"><strong>ORAL</strong></p>
+            <p class="flags"><strong class="px">Oral</strong></p>
           </article>
 
           <article class="pub">
-            <p class="venue">ECCV · 2024</p>
+            <p class="venue px">ECCV · 2024</p>
             <h3><a href="https://www.ecva.net/papers/eccv_2024/papers_ECCV/papers/00223.pdf" target="_blank" rel="noopener noreferrer">MarineInst: A foundation model for marine image analysis with instance visual description</a></h3>
             <p class="authors">Ziqiang Zheng, <span class="me">Yiwei Chen*</span>, Huimin Zeng, Tuan-Anh Vu, Binh-Son Hua, Sai-Kit Yeung</p>
-            <p class="flags"><strong>ORAL</strong><strong>Oral Presentation Award</strong></p>
+            <p class="flags"><strong class="px">Oral</strong><strong class="px">Oral Presentation Award</strong></p>
           </article>
 
           <article class="pub">
-            <p class="venue">arXiv · 2024</p>
+            <p class="venue px">arXiv · 2024</p>
             <h3><a href="https://arxiv.org/pdf/2401.02147" target="_blank" rel="noopener noreferrer">Exploring boundary of GPT-4V on marine analysis: A preliminary case study</a></h3>
             <p class="authors">Ziqiang Zheng, <span class="me">Yiwei Chen*</span>, Jipeng Zhang, Tuan-Anh Vu, Huimin Zeng, Yue Him Wong Tim, Sai-Kit Yeung</p>
           </article>
-        </section>
+        </div>
+      </div>
+    </section>
 
-        <section id="news">
+    <section class="zone zone-midnight" id="news" data-tone="dark">
+      <div class="stage" aria-hidden="true"></div>
+      <div class="wrap zone-grid">
+        <header class="zone-head">
+          <p class="zone-no px">03</p>
           <h2>News</h2>
+          <p class="zone-meta px">Midnight zone<span class="sep"> · </span><br>1,000 – 4,000 m</p>
+        </header>
+        <div class="zone-body">
           <ol class="news">
-            <li><time datetime="2026-03">2026.03</time><span>MaskGuide accepted at RA-L.</span></li>
-            <li><time datetime="2025-12">2025.12</time><span>ORCA accepted at WACV 2026, as an oral.</span></li>
-            <li><time datetime="2024-09">2024.09</time><span>Started the PhD at HKUST.</span></li>
-            <li><time datetime="2024-08">2024.08</time><span>MarineInst received an Oral Presentation Award at ECCV 2024.</span></li>
-            <li><time datetime="2024-07">2024.07</time><span>MarineInst accepted at ECCV 2024.</span></li>
+            <li><time class="px" datetime="2026-03">2026.03</time><span>MaskGuide accepted at RA-L.</span></li>
+            <li><time class="px" datetime="2025-12">2025.12</time><span>ORCA accepted at WACV 2026, as an oral.</span></li>
+            <li><time class="px" datetime="2024-09">2024.09</time><span>Started the PhD at HKUST.</span></li>
+            <li><time class="px" datetime="2024-08">2024.08</time><span>MarineInst received an Oral Presentation Award at ECCV 2024.</span></li>
+            <li><time class="px" datetime="2024-07">2024.07</time><span>MarineInst accepted at ECCV 2024.</span></li>
           </ol>
-        </section>
+        </div>
+      </div>
+    </section>
 
-        <section id="experience">
+    <section class="zone zone-abyss" id="experience" data-tone="dark">
+      <div class="stage" aria-hidden="true"></div>
+      <div class="wrap zone-grid">
+        <header class="zone-head">
+          <p class="zone-no px">04</p>
           <h2>Experience</h2>
-          <p class="label">Education</p>
+          <p class="zone-meta px">Abyssal zone<span class="sep"> · </span><br>4,000 m +</p>
+        </header>
+        <div class="zone-body">
+          <p class="label px">Education</p>
           <div class="rows">
             <div class="row">
-              <p>PhD, Computer Science and Engineering<br>The Hong Kong University of Science and Technology</p>
-              <span>2024 –</span>
+              <p>PhD, Computer Science and Engineering<br><span class="sub">The Hong Kong University of Science and Technology</span></p>
+              <span class="when">2024 –</span>
             </div>
             <div class="row">
-              <p>MSc, Information Technology<br>The Hong Kong University of Science and Technology</p>
-              <span>2023 – 2024</span>
+              <p>MSc, Information Technology<br><span class="sub">The Hong Kong University of Science and Technology</span></p>
+              <span class="when">2023 – 2024</span>
             </div>
             <div class="row">
-              <p>BEng, Telecommunications<br>Huazhong University of Science and Technology</p>
-              <span>2019 – 2023</span>
+              <p>BEng, Telecommunications<br><span class="sub">Huazhong University of Science and Technology</span></p>
+              <span class="when">2019 – 2023</span>
             </div>
           </div>
           <p class="note">As an undergraduate at the School of Electronic Information and Communications, HUST, I joined Prof. <a href="https://english.eic.hust.edu.cn/info/1017/1124.htm" target="_blank" rel="noopener noreferrer">Xiaojun Hei</a>’s innovation program and completed my final-year project with Prof. <a href="https://xwcv.github.io/" target="_blank" rel="noopener noreferrer">Xinggang Wang</a>.</p>
 
-          <p class="label">Teaching</p>
+          <p class="label px">Teaching</p>
           <div class="rows">
-            <div class="row"><p>COMP 2211 Exploring Artificial Intelligence</p><span>Spring 2025</span></div>
-            <div class="row"><p>COMP 2211 Exploring Artificial Intelligence</p><span>Fall 2025</span></div>
-            <div class="row"><p>MSBD 6000Q Vision Language Models for Vision Tasks</p><span>Fall 2025</span></div>
+            <div class="row"><p>COMP 2211 Exploring Artificial Intelligence</p><span class="when">Spring 2025</span></div>
+            <div class="row"><p>COMP 2211 Exploring Artificial Intelligence</p><span class="when">Fall 2025</span></div>
+            <div class="row"><p>MSBD 6000Q Vision Language Models for Vision Tasks</p><span class="when">Fall 2025</span></div>
           </div>
 
-          <p class="label">Visiting</p>
+          <p class="label px">Visiting</p>
           <div class="rows">
-            <div class="row"><p>Visiting student, UESTC, Chengdu</p><span>Aug – Nov 2026</span></div>
+            <div class="row"><p>Visiting student, UESTC, Chengdu</p><span class="when">Aug – Nov 2026</span></div>
           </div>
 
-          <p class="label">Award</p>
+          <p class="label px">Award</p>
           <figure class="award">
             <img src="assets/award.png" width="1400" height="992" alt="Outstanding PG Teaching Assistant Honorable Mention certificate, HKUST Department of Computer Science and Engineering." loading="lazy">
             <figcaption>Outstanding PG Teaching Assistant Honorable Mention, 2025–26.</figcaption>
           </figure>
-        </section>
+        </div>
       </div>
-    </main>
 
-    <footer class="foot">
-      <div class="wrap">
-        <p>© 2026 Yiwei Chen · HKUST</p>
-        <p class="hint">Drag a pixel animal, or click it to talk. Click the surfer, fish, or turtle to slow or stop it, and click again or flick it to push it faster. A bubble pops if you click it or rest on it. A tap on the open page leaves a little light.</p>
-        <p class="hint">Animal replies use Mistral Nemo through <a href="https://llm7.io" target="_blank" rel="noopener noreferrer">LLM7</a>.</p>
+      <footer class="foot">
+        <div class="wrap foot-inner">
+          <div>
+            <p class="foot-mark px">Seafloor reached</p>
+            <p>© 2026 Yiwei Chen · HKUST</p>
+          </div>
+          <div class="foot-hints">
+            <p class="hint">Every creature is alive: drag it anywhere, or click it to talk. Pop bubbles, poke clouds, brush the plankton, and switch on Vision (the eye up top, or <kbd class="px">V</kbd>) to see the sea the way a detector does.</p>
+            <p class="hint">Creature replies use Mistral Nemo through <a href="https://llm7.io" target="_blank" rel="noopener noreferrer">LLM7</a>.</p>
+          </div>
+          <a class="resurface px" href="#top"><span aria-hidden="true">▲</span> Surface</a>
+        </div>
+      </footer>
+      <div class="floor-band">
+        <div class="mission" id="mission" aria-live="polite">
+          <p class="mission-title">Mission success!</p>
+          <p class="mission-sub px" id="mission-sub">Seafloor reached · 4,800 m</p>
+        </div>
       </div>
-    </footer>
-  </div>
-  <div id="creatures"></div>
+    </section>
+  </main>
+
+  <div id="reef"></div>
+
+  <script src="js/sprites.js"></script>
   <script src="js/scene.js"></script>
 </body>
 </html>
