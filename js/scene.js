@@ -1,8 +1,10 @@
 /* The Dive (v3). The page is one descent from the sea surface to the seafloor:
    an ocean canvas behind the text, pixel creatures you can drag and talk to,
    and a depth gauge on the side.
-   Talk uses LLM7's anonymous tier (https://api.llm7.io). The key "unused"
-   is that service's public placeholder, not a secret. */
+   Talk tries, in order: LLM7's anonymous tier (https://api.llm7.io; the key
+   "unused" is that service's public placeholder, not a secret), then the owner's
+   chat proxy (Pollinations, then DeepSeek; the DeepSeek key lives only in that
+   proxy, never in this file), and finally the offline answers below. */
 (function () {
   "use strict";
   const PX = window.PX;
@@ -463,8 +465,11 @@
     return zs[0];
   }
 
+  // Matches what the eye sees: the twilight water only turns dark halfway down its transition band.
   function toneAt(y) {
     if (y < S.surfaceY) return "light";
+    const tw = S.byId.publications;
+    if (tw && y < tw.top + tw.stageH * 0.55) return "light";
     return zoneAt(y).tone;
   }
 
@@ -811,6 +816,7 @@
 
   onLayout(function () {
     schools.forEach(function (s) {
+      if (s.wild) return;
       const z = S.byId[s.spec.zone];
       const span = z.bottom - z.top;
       s.base = z.top + span * (s.spec.band[0] + s.by * (s.spec.band[1] - s.spec.band[0]));
@@ -834,12 +840,70 @@
     s.kick = 1.2;
   }
 
+  // Wild schools: small groups that appear at random places and times, wander, then fade away.
+  let wildTimer = rand(6, 12);
+  let schoolCheck = 0.5;
+  const minSchools = 2 + Math.floor(Math.random() * 3);
+
+  function spawnWild() {
+    const top = Math.max(S.surfaceY + 80, S.sy + S.headerH + 60);
+    const bottom = Math.min(S.floorY - 60, S.sy + S.vh - 100);
+    if (bottom - top < 60) return false;
+    const y = rand(top, bottom);
+    const z = zoneAt(y);
+    const kind = z.index >= 3 ? "lantern" : "minnow";
+    const label = kind === "lantern" ? "Lanternfish" : z.index === 2 ? "Mackerel scad" : "Damselfish";
+    const n = Math.floor(rand(4, 8));
+    const dir = Math.random() < 0.5 ? 1 : -1;
+    const cx = rand(S.vw * 0.12, S.vw * 0.88);
+    const members = [];
+    for (let i = 0; i < n; i++) {
+      const ox = rand(-34, 34);
+      const oy = rand(-16, 16);
+      members.push({ ox: ox, oy: oy, x: cx + ox, y: y + oy, vx: 0, vy: 0, ph: rand(0, TAU), face: dir, frame: 0 });
+    }
+    schools.push({
+      spec: { zone: z.id, n: n, kind: kind, label: label },
+      wild: true, life: rand(24, 38), alpha: 0, dir: dir, speed: rand(18, 34),
+      cx: cx, cy: y, base: y, by: rand(0, 1), members: members, placed: true, kick: 0, box: null, meetCool: 1.5
+    });
+    return true;
+  }
+
   function drawSchools(dt) {
+    // Keep between minSchools (2-4) and 4 schools around whatever the visitor is looking at.
+    if (!S.reduced) {
+      wildTimer -= dt;
+      schoolCheck -= dt;
+      if (schoolCheck <= 0) {
+        schoolCheck = 0.7;
+        const top = S.sy + S.headerH;
+        const bottom = S.sy + S.vh;
+        const inView = schools.filter(function (o) {
+          return o.cy > top && o.cy < bottom && o.members.some(function (m) { return !(m.gone > 0); });
+        }).length;
+        const wild = schools.filter(function (o) { return o.wild; }).length;
+        if (wild < 8 && (inView < minSchools || (inView < 4 && wildTimer <= 0))) {
+          if (spawnWild() && wildTimer <= 0) wildTimer = rand(8, 16);
+        }
+      }
+    }
     schools.forEach(function (s) {
+      s.meetCool = Math.max(0, (s.meetCool || 0) - dt);
+      if (s.wild) {
+        s.life -= dt;
+        s.alpha = s.life < 2 ? Math.max(0, s.life / 2) : Math.min(1, s.alpha + dt * 0.8);
+        const left = s.members.some(function (m) { return !(m.gone > 0); });
+        const far = Math.abs(s.cy - (S.sy + S.vh / 2)) > S.vh * 1.6;
+        if (s.life <= 0 || !left || far || s.cx > S.vw + 200 || s.cx < -200) {
+          s.dead = true;
+          return;
+        }
+      }
       if (!S.reduced) {
         s.cx += s.dir * s.speed * (s.kick > 0 ? 2.2 : 1) * dt;
         s.kick = Math.max(0, s.kick - dt);
-        if (s.cx > S.vw + 160 || s.cx < -160) {
+        if (!s.wild && (s.cx > S.vw + 160 || s.cx < -160)) {
           const shift = s.cx > 0 ? -(S.vw + 300) : S.vw + 300;
           s.cx += shift;
           s.members.forEach(function (m) { m.x += shift; });
@@ -857,6 +921,7 @@
       const dark = toneAt(s.cy) === "dark";
       const frames = s.spec.kind === "lantern" ? lanternSheets : (dark ? minnowDark : minnowLight);
       let l = Infinity, t = Infinity, r = -Infinity, b = -Infinity;
+      let shown = 0;
       s.members.forEach(function (m) {
         if (m.gone > 0) {
           m.gone -= dt;
@@ -872,12 +937,14 @@
           let ax = (tx - m.x) * 5;
           let ay = (ty - m.y) * 5;
           if (P.active) {
+            // With a following school around, the others get curious and let it come close.
+            const fear = chasers.on || (S.chase && S.chase.under) ? 0 : 90;
             const dx = m.x - P.x;
             const dy = m.y - P.y;
             const d2 = dx * dx + dy * dy;
-            if (d2 < 120 * 120) {
+            if (fear > 0 && d2 < fear * fear) {
               const d = Math.sqrt(d2) || 1;
-              const f = (1 - d / 120) * 1400;
+              const f = (1 - d / fear) * 1400;
               ax += dx / d * f;
               ay += dy / d * f;
             }
@@ -894,11 +961,12 @@
         }
         const sh = frames[Math.floor(S.t * 5 + m.ph) % frames.length];
         ctx.save();
-        ctx.globalAlpha = dark ? 0.85 : 0.62;
+        ctx.globalAlpha = (dark ? 0.85 : 0.62) * (s.wild ? s.alpha : 1);
         ctx.translate(Math.round(m.x), Math.round(m.y));
         ctx.scale(m.face * 2, 2);
         ctx.drawImage(sh, -sh.width / 2, -sh.height / 2);
         ctx.restore();
+        shown += 1;
         if (s.spec.kind === "lantern") {
           ctx.fillStyle = "rgba(111, 245, 223, 0.18)";
           ctx.fillRect(Math.round(m.x) - 6, Math.round(m.y) - 2, 12, 6);
@@ -906,8 +974,12 @@
         l = Math.min(l, m.x - 10); r = Math.max(r, m.x + 10);
         t = Math.min(t, m.y - 6); b = Math.max(b, m.y + 6);
       });
-      s.box = { l: l, t: t, r: r, b: b };
+      s.box = shown ? { l: l, t: t, r: r, b: b } : null;
+      s.shown = shown;
     });
+    for (let i = schools.length - 1; i >= 0; i--) {
+      if (schools[i].dead) schools.splice(i, 1);
+    }
   }
 
   function hitSchool(x, y) {
@@ -1219,6 +1291,226 @@
     return null;
   }
 
+  // Streamlines: the cursor's recent path, drawn as a bundle of flow lines that hug it
+  // at the front and spread and meander behind, like water closing in after a finger.
+  const flow = [];
+  const FLOW_LIFE = 1.6;
+  const FLOW_LINES = [-12, -7, -2.5, 2.5, 7, 12];
+  const FLOW_BUCKETS = 10;
+
+  function flowPoint(x, y, under) {
+    const last = flow[flow.length - 1];
+    if (last && last.under === under && Math.hypot(x - last.x, y - last.y) < 4) return;
+    flow.push({ x: x, y: y, age: 0, under: under, dark: under && toneAt(y) === "dark" });
+    if (flow.length > 220) flow.shift();
+  }
+
+  function drawFlow(dt) {
+    for (let i = 0; i < flow.length; i++) flow[i].age += dt;
+    while (flow.length && flow[0].age > FLOW_LIFE) flow.shift();
+    const n = flow.length;
+    if (n < 3) return;
+    // Unit normals along the path, smoothed over neighbours.
+    const nx = new Array(n);
+    const ny = new Array(n);
+    for (let i = 0; i < n; i++) {
+      const a = flow[Math.max(0, i - 2)];
+      const b = flow[Math.min(n - 1, i + 2)];
+      const tx = b.x - a.x;
+      const ty = b.y - a.y;
+      const len = Math.hypot(tx, ty) || 1;
+      nx[i] = -ty / len;
+      ny[i] = tx / len;
+    }
+    const light = [];
+    const dark = [];
+    for (let k = 0; k < FLOW_BUCKETS; k++) {
+      light.push(new Path2D());
+      dark.push(new Path2D());
+    }
+    for (let j = 0; j < FLOW_LINES.length; j++) {
+      const base = FLOW_LINES[j];
+      for (let i = 1; i < n; i++) {
+        const p0 = flow[i - 1];
+        const p1 = flow[i];
+        if (!p0.under || !p1.under) continue;
+        const o0 = base * (0.3 + p0.age * 1.5) + Math.sin(p0.age * 5 + j * 1.3) * p0.age * 4;
+        const o1 = base * (0.3 + p1.age * 1.5) + Math.sin(p1.age * 5 + j * 1.3) * p1.age * 4;
+        const life = 1 - p1.age / FLOW_LIFE;
+        const k = Math.min(FLOW_BUCKETS - 1, Math.floor(life * FLOW_BUCKETS));
+        const path = p1.dark ? dark[k] : light[k];
+        path.moveTo(p0.x + nx[i - 1] * o0, p0.y + ny[i - 1] * o0);
+        path.lineTo(p1.x + nx[i] * o1, p1.y + ny[i] * o1);
+      }
+    }
+    ctx.save();
+    ctx.lineWidth = 1;
+    ctx.lineCap = "round";
+    for (let k = 0; k < FLOW_BUCKETS; k++) {
+      const fade = Math.pow((k + 0.5) / FLOW_BUCKETS, 1.4);
+      ctx.strokeStyle = "rgba(255, 255, 255, " + (0.42 * fade).toFixed(3) + ")";
+      ctx.stroke(light[k]);
+      ctx.strokeStyle = "rgba(150, 248, 230, " + (0.3 * fade).toFixed(3) + ")";
+      ctx.stroke(dark[k]);
+    }
+    ctx.restore();
+  }
+
+  // A little school that chases the cursor while it swims, mills around it when it
+  // pauses, and scatters when it rests or leaves the water.
+  const chasers = { fish: [], energy: 0, still: 0, cool: 0, on: false };
+  const CHASE_N = 7;
+
+  function trailPoint(lag) {
+    for (let i = flow.length - 1; i >= 0; i--) {
+      if (flow[i].age >= lag) return flow[i];
+    }
+    return flow.length ? flow[0] : null;
+  }
+
+  function drawChasers(dt) {
+    const c = S.chase;
+    if (!c || S.reduced) {
+      chasers.fish.length = 0;
+      chasers.on = false;
+      return;
+    }
+    const speed = Math.hypot(c.vx, c.vy);
+    const swimming = c.active && c.under && speed > 40;
+    chasers.energy = clamp(chasers.energy + (swimming ? dt * 1.4 : -dt * 0.2), 0, 1);
+    chasers.still = speed < 20 ? chasers.still + dt : 0;
+    chasers.cool = Math.max(0, chasers.cool - dt);
+    if (!chasers.on && chasers.energy > 0.45 && chasers.cool <= 0) {
+      chasers.on = true;
+      const d = speed || 1;
+      for (let i = 0; i < CHASE_N; i++) {
+        chasers.fish.push({
+          x: c.x - c.vx / d * rand(120, 200) + rand(-40, 40),
+          y: c.y - c.vy / d * rand(120, 200) + rand(-30, 30),
+          vx: 0, vy: 0, a: 0, face: 1, kind: zoneAt(c.y).index >= 3 ? "lantern" : "minnow",
+          lag: 0.12 + i * 0.045, side: rand(-16, 16), ph: rand(0, TAU), max: rand(300, 420)
+        });
+      }
+    }
+    if (c.active && c.under && speed > 20) touchSchools(c);
+    if (!chasers.fish.length) return;
+    const leaving = !c.active || !c.under || chasers.still > 2.6 || chasers.energy <= 0;
+    const dark = toneAt(c.y) === "dark";
+    let l = Infinity, t = Infinity, r = -Infinity, b = -Infinity;
+    for (let i = chasers.fish.length - 1; i >= 0; i--) {
+      const f = chasers.fish[i];
+      let tx;
+      let ty;
+      if (leaving) {
+        const dx = f.x - c.x;
+        const dy = f.y - c.y;
+        const d = Math.hypot(dx, dy) || 1;
+        tx = f.x + dx / d * 220;
+        ty = f.y + dy / d * 220;
+        f.a = Math.max(0, f.a - dt * 1.1);
+      } else if (speed > 25) {
+        const p = trailPoint(f.lag);
+        const nx = c.vy / (speed || 1);
+        const ny = -c.vx / (speed || 1);
+        tx = (p ? p.x : c.x) + nx * f.side;
+        ty = (p ? p.y : c.y) + ny * f.side;
+        f.a = Math.min(1, f.a + dt * 2);
+      } else {
+        tx = c.x + Math.cos(S.t * 1.8 + f.ph) * 36;
+        ty = c.y + Math.sin(S.t * 2.3 + f.ph) * 22;
+        f.a = Math.min(1, f.a + dt * 2);
+      }
+      let ax = (tx - f.x) * 7 - f.vx * 2.6;
+      let ay = (ty - f.y) * 7 - f.vy * 2.6;
+      for (let j = 0; j < chasers.fish.length; j++) {
+        if (j === i) continue;
+        const o = chasers.fish[j];
+        const dx = f.x - o.x;
+        const dy = f.y - o.y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < 120 && d2 > 0.01) {
+          const d = Math.sqrt(d2);
+          ax += dx / d * 600;
+          ay += dy / d * 600;
+        }
+      }
+      f.vx += ax * dt;
+      f.vy += ay * dt;
+      const v = Math.hypot(f.vx, f.vy);
+      if (v > f.max) {
+        f.vx *= f.max / v;
+        f.vy *= f.max / v;
+      }
+      f.x += f.vx * dt;
+      f.y += f.vy * dt;
+      if (Math.abs(f.vx) > 12) f.face = f.vx > 0 ? 1 : -1;
+      if (f.a <= 0 && leaving) {
+        chasers.fish.splice(i, 1);
+        continue;
+      }
+      const fishDark = toneAt(f.y) === "dark";
+      const frames = f.kind === "lantern" ? lanternSheets : (fishDark ? minnowDark : minnowLight);
+      const sh = frames[Math.floor(S.t * (v > 120 ? 12 : 5) + f.ph) % frames.length];
+      ctx.save();
+      ctx.globalAlpha = f.a * (fishDark ? 0.9 : 0.75);
+      ctx.translate(Math.round(f.x), Math.round(f.y));
+      ctx.scale(f.face * 2, 2);
+      ctx.drawImage(sh, -sh.width / 2, -sh.height / 2);
+      ctx.restore();
+      l = Math.min(l, f.x - 10); r = Math.max(r, f.x + 10);
+      t = Math.min(t, f.y - 6); b = Math.max(b, f.y + 6);
+    }
+    if (!chasers.fish.length) {
+      chasers.on = false;
+      chasers.cool = 1.5;
+      chasers.box = null;
+    } else {
+      chasers.box = { l: l, t: t, r: r, b: b, dark: dark };
+    }
+  }
+
+  // When the cursor (or the school following it) touches another school, that school
+  // decides: most of the time it joins; if it refuses, it can be asked again a bit later.
+  function touchSchools(c) {
+    const fb = chasers.box;
+    const px = P.x;
+    const py = P.y;
+    schools.forEach(function (s) {
+      if (!s.box || s.meetCool > 0 || !s.shown || s.dead) return;
+      const pad = 30;
+      const cursorIn = px > s.box.l - pad && px < s.box.r + pad && py > s.box.t - pad && py < s.box.b + pad;
+      const headIn = c.x > s.box.l - pad && c.x < s.box.r + pad && c.y > s.box.t - pad && c.y < s.box.b + pad;
+      const followersIn = fb && chasers.on && !(fb.r + 40 < s.box.l || fb.l - 40 > s.box.r || fb.b + 40 < s.box.t || fb.t - 40 > s.box.b);
+      if (!cursorIn && !headIn && !followersIn) return;
+      const x = (s.box.l + s.box.r) / 2;
+      const y = s.box.t - 12;
+      const dark = toneAt(s.cy) === "dark";
+      if (Math.random() < 0.7 && chasers.fish.length < 32) {
+        s.meetCool = 6;
+        let n = 0;
+        s.members.forEach(function (m) {
+          if (m.gone > 0 || chasers.fish.length >= 32) return;
+          chasers.fish.push({
+            x: m.x, y: m.y, vx: m.vx, vy: m.vy, a: s.wild ? Math.max(0.4, s.alpha) : 1, face: m.face, kind: s.spec.kind,
+            lag: rand(0.12, 0.9), side: rand(-26, 26), ph: m.ph, max: rand(300, 420)
+          });
+          m.gone = s.wild ? 1e9 : rand(30, 50);
+          n += 1;
+        });
+        chasers.on = true;
+        chasers.energy = 1;
+        chasers.still = 0;
+        addFx({ k: "label", x: x, y: y, vx: 0, g: 0, text: "+" + n + " joined!", col: "255, 210, 122", vy: -26, life: 1.5, max: 1.5 });
+        sparks(x, y + 12, 10, "255, 210, 122");
+        if (s.wild) s.dead = true;
+      } else {
+        s.meetCool = 6;
+        scatter(s, px, py, 650);
+        addFx({ k: "label", x: x, y: y, vx: 0, g: 0, text: pick(["nah!", "no thanks!", "shy…", "busy!", "maybe later"]), col: dark ? "160, 248, 232" : "255, 255, 255", vy: -22, life: 1.3, max: 1.3 });
+      }
+    });
+  }
+
   // Short-lived effects: splashes, ink, sparks, rings, flashes.
   const fx = [];
   function addFx(o) {
@@ -1298,7 +1590,7 @@
         ctx.fillRect(Math.round(f.x), Math.round(f.y), 3, 3);
       } else if (f.k === "ring") {
         const r = 6 + k * f.r;
-        const a = (1 - k) * 0.7;
+        const a = (1 - k) * 0.7 * (f.a || 1);
         ctx.fillStyle = "rgba(" + f.col + ", " + a.toFixed(3) + ")";
         const n = Math.max(12, Math.round(r * 0.9));
         for (let j = 0; j < n; j++) {
@@ -1316,6 +1608,17 @@
           const span = Math.sqrt(Math.max(0, r * r - yy * yy));
           ctx.fillRect(Math.round((f.x - span) / s) * s, Math.round((f.y + yy) / s) * s, Math.round(span * 2 / s) * s, s);
         }
+      } else if (f.k === "label") {
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, (1 - k) * 1.6);
+        ctx.font = "9px Silkscreen, monospace";
+        ctx.textAlign = "center";
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "rgba(4, 19, 28, 0.85)";
+        ctx.strokeText(f.text.toUpperCase(), Math.round(f.x), Math.round(f.y));
+        ctx.fillStyle = "rgb(" + f.col + ")";
+        ctx.fillText(f.text.toUpperCase(), Math.round(f.x), Math.round(f.y));
+        ctx.restore();
       } else if (f.k === "spark") {
         ctx.fillStyle = "rgba(" + f.col + ", " + (1 - k).toFixed(3) + ")";
         ctx.fillRect(Math.round(f.x), Math.round(f.y), 3, 3);
@@ -1430,6 +1733,10 @@
   }
 
   function drawVision() {
+    if (chasers.box) {
+      const cb = chasers.box;
+      bracket(cb.l - 6, cb.t - 6, cb.r + 6, cb.b + 6, ("Curious juveniles x" + chasers.fish.length + " 0.86").toUpperCase(), cb.dark);
+    }
     schools.forEach(function (s, i) {
       if (!s.box) return;
       const conf = (0.84 + (i % 4) * 0.03).toFixed(2);
@@ -1474,6 +1781,8 @@
     drawSnow(dt);
     drawCreatureLights();
     drawSchools(dt);
+    drawFlow(dt);
+    drawChasers(dt);
     drawBubbles(dt);
     drawFx(dt);
     drawRain(dt);
@@ -2439,19 +2748,21 @@
       render();
       const messages = [{ role: "system", content: systemFor(c, text) }].concat(h);
       let answer = "";
-      let local = false;
+      let source = "";
       try {
-        answer = cleanReply(await askModel(messages), spec.name);
+        const got = await askModel(messages);
+        answer = cleanReply(got.text, spec.name);
+        source = got.via;
         if (!answer) throw new Error("empty");
       } catch (err) {
         answer = fallback(spec, text);
-        local = true;
+        source = "";
       }
       if (tokens.get(spec.id) !== token) return;
       busy.set(spec.id, false);
       h.push({ role: "assistant", content: answer });
       if (api.current === c) {
-        via.textContent = local ? "Local reply · the model is away" : "Replied via a free model · LLM7";
+        via.textContent = source ? "Replied via " + source : "Offline reply · the models are resting";
         render();
         api.place();
       }
@@ -2505,46 +2816,268 @@
     return out.trim();
   }
 
-  function fallback(spec, text) {
-    const chinese = /[一-鿿]/.test(text);
-    if (/who|yiwei|jackson|hkust|website|research|陈|谁|网站|港科|研究/i.test(text)) {
-      return chinese
-        ? "这是陈奕玮的主页。他是香港科技大学计算机科学与工程系的博士生，研究海洋计算机视觉。"
-        : "This page is Yiwei Chen’s. He is a PhD student in computer science at HKUST, working on marine computer vision.";
+  /* ---------- offline brain: answers when the free model is busy ---------- */
+
+  // One answer per chip question, in the same order as spec.chips.
+  const LOCAL = {
+    det: {
+      en: ["Watch for lines of swell stacking up on the horizon, then pick the wave that peels steadily instead of closing out all at once.",
+        "Wind blowing over the sea pushes energy into the water. That energy travels thousands of kilometres as swell, then rises and breaks in shallow water.",
+        "A narrow channel of water rushing back out to sea. If one grabs you, don't fight it: swim parallel to the beach until you're free."],
+      zh: ["看远处一排排涌浪，挑那道能稳定地从一侧破开、而不是一下全部拍下的浪。",
+        "风吹过海面把能量传给海水，能量以涌浪的形式传播上千公里，到浅水区抬高并破碎。",
+        "离岸流是一股流回大海的窄急水流。被卷住别硬拼，平行于海岸游出去。"]
+    },
+    dropout: {
+      en: ["Shells are too tough to bite, so we fly up and drop them on rocks to crack them open. Some of us even pick the hardest rocks.",
+        "Yes! Glands above my eyes filter out the salt, and it drips out through my beak. Skree!",
+        "Dropout is a neural network trick: randomly ignore some neurons while training so the model doesn't overfit. I randomly ignore some of you. Same idea."],
+      zh: ["贝壳太硬咬不开，我们就飞高把它扔到石头上摔开，有的海鸥还专挑硬石头。",
+        "可以！我眼睛上方有盐腺，能把盐分滤出来，再从嘴边滴出去。嘎！",
+        "Dropout 是神经网络的训练技巧：随机丢掉一部分神经元，防止过拟合。我随机不听你说话，同理。"]
+    },
+    git: {
+      en: ["In a school, a predator can't lock onto any one of us, and we save energy swimming in each other's wake.",
+        "Between the branches of coral. When danger comes, the whole school dives in at once.",
+        "Corals give us shelter, and we give them nutrients from our waste and help keep algae from taking over."],
+      zh: ["成群游的时候，捕食者很难锁定其中一条，我们还能借彼此的尾流省力。",
+        "躲进枝状珊瑚的缝隙里，危险一来整群一起钻进去。",
+        "珊瑚给我们庇护，我们的排泄物给珊瑚养分，还帮着控制藻类。"]
+    },
+    python: {
+      en: ["Green turtles take 20 to 40 years to grow up, and many live well past 70.",
+        "I read Earth's magnetic field like a map. Many of us return to the very beach where we hatched.",
+        "Adult green turtles are mostly vegetarian. Grazing keeps seagrass meadows short and healthy, like mowing a lawn."],
+      zh: ["绿海龟要20到40年才成年，很多能活过70岁。",
+        "我像读地图一样感知地磁场，很多海龟会回到自己出生的那片沙滩。",
+        "成年绿海龟基本吃素。我们啃食海草，就像修剪草坪，让海草床保持健康。"]
+    },
+    pip: {
+      en: ["Yes! Mum puts the eggs in Dad's pouch, and he carries them until hundreds of tiny seahorses pop out.",
+        "My tail grips like a hand. I hold on to seagrass so the current doesn't carry me away.",
+        "A little fin on my back flutters up to 50 times a second, and the fins by my head steer. I'm a slow swimmer, honestly."],
+      zh: ["是的！妈妈把卵产进爸爸的育儿袋，爸爸一直带着，直到生出几百只小海马。",
+        "我的尾巴能像手一样抓东西，抓住海草就不会被水流冲走。",
+        "背上的小鳍每秒能扇动约50次，头边的鳍负责转向。老实说，我游得很慢。"]
+    },
+    seg: {
+      en: ["It means labelling every pixel in an image: this pixel is coral, that one is fish, that one is water. It tells a model exactly where each thing is.",
+        "Water absorbs red light first, scatters light into haze, and the light keeps flickering. So colours shift and edges blur.",
+        "I outline each coral and fish by hand, pixel by pixel. Models like Yiwei's MaskGuide then learn to do it fast enough for small robots."],
+      zh: ["图像分割就是给每个像素贴标签：这是珊瑚，那是鱼，那是水，让模型知道每样东西的确切位置。",
+        "水会先吸收红光，又把光散射成雾，光线还一直晃动，所以颜色会偏，边缘会糊。",
+        "我一点点手工描出每块珊瑚和每条鱼的轮廓。像奕玮的 MaskGuide 这样的模型就能学会，而且快到能在小机器人上运行。"]
+    },
+    gan: {
+      en: ["Very rarely. People kill tens of millions of sharks a year; sharks bite only a handful of people. You're far more dangerous than me.",
+        "We keep fish populations healthy by catching the weak and sick. Reefs with sharks have more fish and healthier corals.",
+        "In a GAN, two networks compete: one makes fakes, one catches them, and both get better. I'm the adversary that keeps every fish sharp."],
+      zh: ["非常少。人类每年捕杀数千万条鲨鱼，鲨鱼咬人的事件却寥寥无几。你们比我危险多了。",
+        "我们捕食老弱病残，让鱼群保持健康。有鲨鱼的珊瑚礁，鱼更多，珊瑚也更健康。",
+        "GAN 里两个网络对抗：一个造假，一个抓假，双方越来越强。我就是让每条鱼保持警觉的那个对手。"]
+    },
+    docker: {
+      en: ["Mmm. Past 1,000 metres, sometimes near 2,000, and I can stay down for over an hour hunting squid.",
+        "I send out loud clicks and listen for the echoes. Their timing tells me where the squid are, even in total darkness.",
+        "Mmm. Everything I need, packed so it runs the same in every ocean. That's what containers are for."],
+      zh: ["嗯。我能潜到一千多米，有时接近两千米，一口气能在下面待一个多小时捕乌贼。",
+        "我发出响亮的咔嗒声，再听回声。回声的时间告诉我乌贼在哪，哪怕一片漆黑。",
+        "嗯。我需要的一切都打包好了，在哪片海都能一样运行。容器就是干这个的。"]
+    },
+    conda: {
+      en: ["No brain at all. Just a net of nerves around my bell, and it works surprisingly well.",
+        "I squeeze my bell to push water out, then relax and drift. Pulse, drift, pulse.",
+        "Warmer water, fewer predators because of overfishing, and extra nutrients from the land all help jellyfish multiply fast."],
+      zh: ["完全没有大脑，只有伞盖周围的一张神经网，效果还挺好。",
+        "收缩伞盖把水挤出去，然后放松漂一会儿。收缩，漂，收缩。",
+        "海水变暖、过度捕捞让天敌变少、陆地带来更多营养，都会让水母快速繁殖。"]
+    },
+    neuron: {
+      en: ["A nerve fibre up to a millimetre thick, about a hundred times wider than yours. It lets us fire off jet escapes in a flash.",
+        "In the 1950s Hodgkin and Huxley put tiny wires into squid giant axons and worked out how nerve signals fire. They won a Nobel Prize, and their model inspired artificial neurons.",
+        "My skin is full of tiny colour sacs called chromatophores. Muscles stretch or squeeze them in milliseconds."],
+      zh: ["一种粗达一毫米的神经纤维，比你们的粗约一百倍，让我们能瞬间喷射逃跑。",
+        "1950年代，霍奇金和赫胥黎把细电极插进乌贼巨型轴突，弄清了神经信号如何产生，因此获得诺贝尔奖，他们的模型也启发了人工神经元。",
+        "我的皮肤里有许多叫色素细胞的小色囊，肌肉能在几毫秒内拉开或收紧它们。"]
+    },
+    torch: {
+      en: ["It's packed with glowing bacteria. I give them a home, they give me light.",
+        "Light made by living things through a chemical reaction. In the deep sea, most animals can make some light of their own.",
+        "I wiggle my lure, curious fish swim up to the light, and gulp. My big mouth does the rest."],
+      zh: ["我的灯里住满了会发光的细菌。我给它们安家，它们给我光。",
+        "生物通过化学反应自己发出的光。在深海，大多数动物都能发一点光。",
+        "我晃动诱饵，好奇的鱼游向灯光，然后一口吞下。剩下的交给我的大嘴。"]
+    },
+    softmax: {
+      en: ["Food is rare down here, so my hinged jaw opens wide enough to swallow prey bigger than me. Never waste a meal.",
+        "The tip of my tail has a little light. Scientists think it lures prey toward my mouth.",
+        "Softmax takes any list of numbers and squashes it into probabilities that add up to one. I swallow anything and make it tidy too."],
+      zh: ["这里食物稀少，我的大嘴能张开吞下比我还大的猎物，一顿都不能浪费。",
+        "我尾巴尖有个小光点，科学家认为它能把猎物引到我嘴边。",
+        "Softmax 能把任意一串数字压成加起来等于一的概率。我也是什么都吞，再整理得整整齐齐。"]
+    },
+    head: {
+      en: ["Kind of! Most of an octopus's neurons live in its arms, so each arm can make some decisions on its own.",
+        "They're fins, not ears. I flap them to swim, gently, like a little Dumbo.",
+        "In a neural network, the head is the small part on top of a backbone that makes the final prediction. Put me on Backbone and we're a detector!"],
+      zh: ["算是吧！章鱼大部分神经元都在腕足里，每条腕足能自己做一些决定。",
+        "那是鳍，不是耳朵。我扇动它们来游泳，慢悠悠的，像小飞象。",
+        "神经网络里，head 是接在 backbone 上、负责最终预测的那一小部分。把我放到 Backbone 上，我们就是一个检测器！"]
+    },
+    backbone: {
+      en: ["Not one bone! My skeleton is on the outside, a hard shell called an exoskeleton. Yes, my name is a joke.",
+        "To grow, I crawl out of my old shell. The new one stays soft for a few days, so I hide until it hardens.",
+        "My body is mostly water, which barely compresses, so the pressure squeezes me evenly. No air pockets, no problem."],
+      zh: ["一根骨头都没有！我的骨骼长在外面，是一层硬壳，叫外骨骼。没错，我的名字是个玩笑。",
+        "为了长大，我要从旧壳里爬出来。新壳会软几天，我就躲起来等它变硬。",
+        "我身体大部分是水，水几乎压不缩，压力就均匀地分布。体内没有气腔，就没问题。"]
+    },
+    jetson: {
+      en: ["My lamps light the scene and my camera records it. Then my vision models find and label everything, confidence included.",
+        "The tether is slow and the ocean is big. Running models on my Jetson lets me react in real time, without waiting for the ship.",
+        "A pilot on the ship, through my tether. My models help by spotting creatures before the pilot does."],
+      zh: ["灯照亮四周，摄像头记录画面，再由视觉模型找出并标注所有东西，附带置信度。",
+        "缆线带宽有限，海洋又太大。在 Jetson 上本地运行模型，我就能实时反应，不用等船上回复。",
+        "船上的驾驶员通过缆线操控我。我的模型帮忙，常常比驾驶员先发现生物。"]
     }
-    return chinese ? spec.localZh : spec.localEn;
+  };
+
+  // Questions about the page owner, answered from the page's own facts.
+  const ABOUT_YIWEI = [
+    { re: /paper|publication|publish|maskguide|orca|marineinst|eccv|wacv|论文|发表/i,
+      en: "His papers include MaskGuide (RA-L 2026), ORCA (WACV 2026, oral) and MarineInst (ECCV 2024, oral, with an Oral Presentation Award).",
+      zh: "他的论文包括 MaskGuide（RA-L 2026）、ORCA（WACV 2026，口头报告）和 MarineInst（ECCV 2024，口头报告，并获口头报告奖）。" },
+    { re: /supervis|advisor|adviser|professor|prof\b|yeung|zheng|导师|教授/i,
+      en: "He is supervised by Prof. Sai-Kit Yeung at HKUST and works closely with Prof. Ziqiang Zheng of UESTC.",
+      zh: "他的导师是港科大的 Sai-Kit Yeung 教授，并与电子科技大学的 Ziqiang Zheng 教授密切合作。" },
+    { re: /email|e-mail|contact|reach|collaborat|邮箱|联系|合作/i,
+      en: "You can write to him at jackson.chen.yiwei@gmail.com or ychenmb@connect.ust.hk.",
+      zh: "可以写信给他：jackson.chen.yiwei@gmail.com 或 ychenmb@connect.ust.hk。" },
+    { re: /teach|\bta\b|comp ?2211|msbd|助教|教学/i,
+      en: "He TAs COMP 2211 Exploring AI and MSBD 6000Q Vision Language Models at HKUST, and received an Outstanding PG TA Honorable Mention for 2025–26.",
+      zh: "他在港科大担任 COMP 2211 和 MSBD 6000Q 的助教，获得 2025–26 优秀研究生助教提名奖。" },
+    { re: /educat|degree|undergrad|bachelor|master|msc|beng|hust|university|学历|本科|硕士|大学/i,
+      en: "PhD in CSE at HKUST since 2024, an MSc in IT at HKUST before that, and a BEng in Telecommunications from HUST.",
+      zh: "2024 年起在港科大读计算机博士，之前在港科大读信息技术硕士，本科是华中科技大学通信工程。" },
+    { re: /research|work on|studies|研究|方向/i,
+      en: "He builds computer vision for marine and biology studies: recognising sea life, and the problems that sit between 2D and 3D vision.",
+      zh: "他研究海洋与生物方向的计算机视觉：识别海洋生物，以及介于二维和三维视觉之间的问题。" },
+    { re: /yiwei|jackson|page owner|this (page|site|website)|who (is|made|built|owns) (this|he|him)|陈奕玮|奕玮|网站|主页|他是谁/i,
+      en: "This is Yiwei Chen's page. He's a third-year PhD student in Computer Science and Engineering at HKUST, working on marine vision intelligence.",
+      zh: "这是陈奕玮的主页。他是香港科技大学计算机科学与工程系的三年级博士生，研究海洋视觉智能。" }
+  ];
+
+  const STOP = /^(you|your|yours|the|and|how|what|why|who|are|does|did|can|could|would|tell|about|with|this|that|there|here|have|has|for|from|into|its|it's|whats|what's)$/;
+
+  function words(text) {
+    return (String(text).toLowerCase().match(/[a-z]+/g) || []).filter(function (w) {
+      return w.length > 2 && !STOP.test(w);
+    }).map(function (w) { return w.replace(/(ing|es|s)$/, ""); });
   }
 
+  function localAnswer(spec, text) {
+    const zh = /[一-鿿]/.test(text);
+    const lang = zh ? "zh" : "en";
+    const book = LOCAL[spec.id];
+    if (/who are you|your name|introduce yourself|你是谁|你叫什么/i.test(text)) return spec.greeting;
+    if (book) {
+      const exact = spec.chips[lang].indexOf(text.trim());
+      if (exact >= 0) return book[lang][exact];
+    }
+    for (let i = 0; i < ABOUT_YIWEI.length; i++) {
+      if (ABOUT_YIWEI[i].re.test(text)) return ABOUT_YIWEI[i][lang];
+    }
+    if (!book) return null;
+    if (zh) {
+      let best = -1;
+      let score = 0;
+      spec.chips.zh.forEach(function (q, i) {
+        let s = 0;
+        for (let k = 0; k < q.length - 1; k++) if (text.indexOf(q.slice(k, k + 2)) >= 0) s += 1;
+        if (s > score) { score = s; best = i; }
+      });
+      return score >= 2 ? book.zh[best] : null;
+    }
+    const mine = words(text);
+    let best = -1;
+    let score = 0;
+    spec.chips.en.forEach(function (q, i) {
+      const theirs = words(q);
+      const s = mine.filter(function (w) { return theirs.indexOf(w) >= 0; }).length;
+      if (s > score) { score = s; best = i; }
+    });
+    return score >= 1 ? book.en[best] : null;
+  }
+
+  function offlineNudge(spec, text) {
+    const zh = /[一-鿿]/.test(text);
+    const q = pick(spec.chips[zh ? "zh" : "en"]);
+    return zh
+      ? (spec.localZh + " 或者问我：“" + q + "”")
+      : (spec.localEn + " Or ask me: “" + q + "”");
+  }
+
+  function fallback(spec, text) {
+    return localAnswer(spec, text) || offlineNudge(spec, text);
+  }
+
+  // The chat proxy (deepseek-proxy/ in the site folder): Pollinations, then DeepSeek.
+  // Paste its Cloudflare Worker URL here once deployed. Empty = skip it.
+  const CHAT_PROXY = "https://yiwei-deepseek-proxy.yiweiweb.workers.dev";
+
+  const PROVIDERS = [
+    {
+      name: "LLM7", url: "https://api.llm7.io/v1/chat/completions", key: "unused",
+      models: ["mistral-Nemo-Instruct-2407", "default"], maxTokens: 140, timeout: 14000, downUntil: 0
+    },
+    {
+      name: "Backup", url: CHAT_PROXY,
+      models: ["auto"], maxTokens: 220, timeout: 40000, downUntil: 0
+    }
+  ];
+
   async function askModel(messages) {
-    const models = ["mistral-Nemo-Instruct-2407", "default"];
     let lastError = null;
-    for (let i = 0; i < models.length; i++) {
-      try {
-        return await callModel(models[i], messages);
-      } catch (err) {
-        lastError = err;
-        if (err && err.rate) break;
+    for (let p = 0; p < PROVIDERS.length; p++) {
+      const provider = PROVIDERS[p];
+      if (!provider.url || Date.now() < provider.downUntil) continue;
+      for (let i = 0; i < provider.models.length; i++) {
+        try {
+          const got = await callModel(provider, provider.models[i], messages);
+          if (got.text && got.text.trim()) return { text: got.text, via: got.via || provider.name };
+          throw new Error("empty");
+        } catch (err) {
+          lastError = err;
+          if (err && err.rate) {
+            // Out of quota: skip this provider for a while instead of hitting it again.
+            provider.downUntil = Date.now() + Math.min(10 * 60 * 1000, Math.max(30000, (err.retry || 60) * 1000));
+            break;
+          }
+        }
       }
     }
     throw lastError || new Error("no model");
   }
 
-  async function callModel(model, messages) {
+  async function callModel(provider, model, messages) {
     const ctrl = new AbortController();
-    const timer = window.setTimeout(function () { ctrl.abort(); }, 14000);
+    const timer = window.setTimeout(function () { ctrl.abort(); }, provider.timeout);
     try {
-      const res = await fetch("https://api.llm7.io/v1/chat/completions", {
+      const headers = { "Content-Type": "application/json" };
+      if (provider.key) headers.Authorization = "Bearer " + provider.key;
+      const res = await fetch(provider.url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer unused"
-        },
-        body: JSON.stringify({ model: model, temperature: 0.7, max_tokens: 140, messages: messages }),
+        headers: headers,
+        body: JSON.stringify({ model: model, temperature: 0.7, max_tokens: provider.maxTokens, messages: messages }),
         signal: ctrl.signal
       });
-      if (res.status === 429) {
+      if (res.status === 429 || res.status === 402) {
         const error = new Error("rate");
         error.rate = true;
+        try {
+          const body = await res.json();
+          error.retry = body && body.error && body.error.retry_after;
+        } catch (e) { /* no body */ }
         throw error;
       }
       if (!res.ok) throw new Error("status " + res.status);
@@ -2552,11 +3085,12 @@
       const content = data && data.choices && data.choices[0] && data.choices[0].message
         ? data.choices[0].message.content
         : "";
-      if (typeof content === "string") return content;
-      if (Array.isArray(content)) {
-        return content.map(function (part) { return part.text || part.content || ""; }).join("");
+      let text = "";
+      if (typeof content === "string") text = content;
+      else if (Array.isArray(content)) {
+        text = content.map(function (part) { return part.text || part.content || ""; }).join("");
       }
-      return "";
+      return { text: text, via: data && data.via };
     } finally {
       window.clearTimeout(timer);
     }
@@ -3665,23 +4199,62 @@
 
   const cursor = (function () {
     const fine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-    const host = document.getElementById("pointer");
     const trailCanvas = document.getElementById("trail");
-    if (!fine || !host || !trailCanvas) return { tick: function () {}, release: function () {} };
-    const canvas = document.createElement("canvas");
-    host.appendChild(canvas);
+    const root = document.documentElement;
+    if (!fine || !trailCanvas) return { tick: function () {}, release: function () {} };
     const tc = trailCanvas.getContext("2d");
     const trail = [];
-    const lightMasks = PX.DIVER_MASK;
     const darkOver = { k: "#cfe9e3" };
     let x = -80;
     let y = -80;
-    let tx = -80;
-    let ty = -80;
-    let hot = false;
     let active = false;
-    let shown = "";
+    let hot = false;
+    let tone = "";
     let nextBubble = 0;
+    let moved = false;
+
+    // Render the pixel mask into PNG cursor images: idle/hot × light/dark, at 1x and 2x.
+    const setFn = ["image-set", "-webkit-image-set"].find(function (fn) {
+      return window.CSS && CSS.supports("cursor", fn + '(url("data:,x") 1x) 1 1, auto');
+    });
+    function png(lines, over, scale) {
+      const src = document.createElement("canvas");
+      paint(src, lines, over);
+      const c = document.createElement("canvas");
+      c.width = src.width * scale;
+      c.height = src.height * scale;
+      const cx = c.getContext("2d");
+      cx.imageSmoothingEnabled = false;
+      cx.drawImage(src, 0, 0, c.width, c.height);
+      return c.toDataURL("image/png");
+    }
+    function cursorValue(lines, over) {
+      const hx = lines[0].length;
+      const hy = lines.length;
+      const one = 'url("' + png(lines, over, 2) + '")';
+      if (!setFn) return one + " " + hx + " " + hy;
+      return setFn + "(" + one + " 1x, url(\"" + png(lines, over, 4) + "\") 2x) " + hx + " " + hy;
+    }
+    const looks = {
+      light: [cursorValue(PX.DIVER_MASK[0], null), cursorValue(PX.DIVER_MASK[1], null)],
+      dark: [cursorValue(PX.DIVER_MASK[0], darkOver), cursorValue(PX.DIVER_MASK[1], darkOver)]
+    };
+    let wet = null;
+    let skim = 0;
+    // The streamlines are led by a point dragged through water behind the cursor:
+    // a heavily damped spring, so the trace lags a little and eases in.
+    let hx = null;
+    let hy = 0;
+    let hvx = 0;
+    let hvy = 0;
+
+    function setTone(next) {
+      if (next === tone) return;
+      tone = next;
+      root.style.setProperty("--sea-cursor", looks[next][0]);
+      root.style.setProperty("--sea-cursor-hot", looks[next][1]);
+    }
+    setTone("light");
 
     function resize() {
       const ratio = Math.min(window.devicePixelRatio || 1, 2);
@@ -3691,27 +4264,26 @@
     }
     onLayout(resize);
 
-    function show(event) {
+    function track(event) {
       if (event.pointerType && event.pointerType !== "mouse") return;
-      const target = event.target && event.target.closest ? event.target : null;
-      const typing = target && target.closest("input, textarea, .chat");
-      tx = event.clientX;
-      ty = event.clientY;
-      active = !typing;
-      hot = !typing && (!!(target && target.closest("a, button, .critter-btn, .quip")) || overScene(event.clientX, event.clientY));
-      host.style.display = active ? "block" : "none";
-      document.body.classList.toggle("sea-cursor", active);
+      x = event.clientX;
+      y = event.clientY;
+      moved = true;
+      if (!active) {
+        active = true;
+        root.classList.add("sea-cursor");
+      }
     }
 
     function release() {
       active = false;
+      if (S.chase) S.chase.active = false;
       hot = false;
-      host.style.display = "none";
-      document.body.classList.remove("sea-cursor");
+      root.classList.remove("sea-cursor", "sea-hot");
     }
 
-    window.addEventListener("pointermove", show);
-    window.addEventListener("pointerdown", show);
+    window.addEventListener("pointermove", track, { passive: true });
+    window.addEventListener("pointerdown", track, { passive: true });
     document.documentElement.addEventListener("mouseleave", release);
 
     return {
@@ -3722,20 +4294,60 @@
           trail.length = 0;
           return;
         }
-        const follow = Math.min(1, dt * (hot ? 24 : 16));
-        x += (tx - x) * follow;
-        y += (ty - y) * follow;
-        const dark = toneAt(y + S.sy) === "dark";
-        const key = (hot ? 1 : 0) + (dark ? "d" : "l");
-        if (key !== shown) {
-          shown = key;
-          paint(canvas, lightMasks[hot ? 1 : 0], dark ? darkOver : null);
+        // Hover checks against canvas objects run once a frame, not on every mouse event.
+        skim = Math.max(0, skim - dt);
+        if (moved) {
+          moved = false;
+          const docY = y + S.sy;
+          const line = level(x);
+          const under = docY > line + 2;
+          setTone(under ? toneAt(docY) : "light");
+          // Crossing the waterline: mask on with a splash, mask off with a few drops.
+          if (wet !== null && under !== wet && !S.reduced) {
+            if (under) {
+              splash(x, 10);
+              bubbleBurst(x, line + 26, 4);
+            } else {
+              splash(x, 6);
+            }
+          }
+          wet = under;
+          // Skimming the surface makes the waves bob.
+          if (!S.reduced && Math.abs(docY - line) < 22 && skim <= 0) {
+            bump(x, 6, 46);
+            skim = 0.09;
+          }
+          if (!S.reduced && under && toneAt(docY) === "dark") glowAround(x, docY, 70);
+          const nowHot = overScene(x, y);
+          if (nowHot !== hot) {
+            hot = nowHot;
+            root.classList.toggle("sea-hot", hot);
+          }
         }
-        host.style.transform = "translate(" + (x - 17).toFixed(1) + "px, " + (y - 15).toFixed(1) + "px)";
         if (!S.reduced) {
+          const tx = x;
+          const ty = y + S.sy;
+          if (hx === null || Math.hypot(tx - hx, ty - hy) > 420) {
+            hx = tx;
+            hy = ty;
+            hvx = 0;
+            hvy = 0;
+          }
+          const stiff = 120;
+          const drag = 19;
+          hvx += (tx - hx) * stiff * dt;
+          hvy += (ty - hy) * stiff * dt;
+          const damp = Math.exp(-drag * dt);
+          hvx *= damp;
+          hvy *= damp;
+          hx += hvx * dt;
+          hy += hvy * dt;
+          const headUnder = hy > level(hx) + 10;
+          if (Math.hypot(hvx, hvy) > 6) flowPoint(hx, hy, headUnder);
+          S.chase = { x: hx, y: hy, vx: hvx, vy: hvy, under: headUnder, active: true };
           nextBubble -= dt;
           if (nextBubble <= 0) {
-            trail.push({ x: x + rand(-4, 4), y: y + 8, born: y + 8, r: 2.1, vx: rand(-5, 5), vy: -rand(32, 50), pop: 0 });
+            trail.push({ x: x + rand(-4, 4), y: y + 10, born: y + 10, r: 2.1, vx: rand(-5, 5), vy: -rand(32, 50), pop: 0 });
             nextBubble = hot ? 0.12 : 0.28;
           }
         }

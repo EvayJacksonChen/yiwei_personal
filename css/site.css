@@ -97,30 +97,18 @@ button { font: inherit; color: inherit; }
 #ocean { z-index: 0; }
 #trail { z-index: 40; }
 
-#pointer {
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 41;
-  width: 34px;
-  height: 30px;
-  pointer-events: none;
-  display: none;
-}
+/* The diver-mask cursor is a native cursor image (set from JS), so it moves with zero lag. */
+html.sea-cursor,
+html.sea-cursor * { cursor: var(--sea-cursor), auto !important; }
 
-#pointer canvas {
-  display: block;
-  width: 34px;
-  height: 30px;
-  image-rendering: pixelated;
-}
+html.sea-cursor :is(a, button, label, summary, .critter-btn, .quip, .gauge-tick),
+html.sea-cursor.sea-hot,
+html.sea-cursor.sea-hot * { cursor: var(--sea-cursor-hot), pointer !important; }
 
-body.sea-cursor,
-body.sea-cursor a,
-body.sea-cursor button { cursor: none; }
+html.sea-cursor :is(input, textarea, [contenteditable]) { cursor: text !important; }
 
-body.sea-cursor input,
-body.sea-cursor textarea { cursor: text; }
+html.sea-cursor body.dragging,
+html.sea-cursor body.dragging * { cursor: grabbing !important; }
 
 .skip {
   position: fixed;
@@ -1142,7 +1130,7 @@ body.vision .portrait-wrap .det-tag {
   font-weight: 300;
 }
 
-.me { color: var(--ink); font-weight: 500; }
+.authors .me { color: var(--ink); font-weight: 500; }
 
 .flags {
   display: flex;
