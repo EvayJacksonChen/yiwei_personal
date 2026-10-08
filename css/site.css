@@ -193,6 +193,23 @@ html.sea-cursor body.dragging * { cursor: grabbing !important; }
   gap: 1.1rem;
 }
 
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.55rem 0.26rem;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-family: "Songti SC", "Noto Serif SC", "Source Han Serif SC", var(--serif);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.lang-switch:hover { color: var(--ink); border-color: var(--det); }
+
 .vision-toggle {
   display: inline-flex;
   align-items: center;
