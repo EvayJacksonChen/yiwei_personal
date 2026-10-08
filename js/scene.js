@@ -35,6 +35,20 @@
     { id: "experience", name: "Abyssal zone", tone: "dark", d0: 4000, d1: 4800 }
   ];
 
+  // Live weather in Hong Kong (Open-Meteo) shapes the rainbow, the sky and the sea.
+  // Each kind maps to a real optical effect: a double rainbow needs sun and showers,
+  // fog makes a white fogbow, and moonlight makes a pale moonbow.
+  const WEATHER_KINDS = {
+    sunny: { label: "sunny", bow: "normal", alpha: 1, twinkle: 1.4, clouds: "white", rain: 0, wave: 1 },
+    partly: { label: "partly cloudy", bow: "normal", alpha: 0.9, twinkle: 1, clouds: "white", rain: 0, wave: 1 },
+    sunshower: { label: "sun & showers", bow: "normal", alpha: 1, double: true, twinkle: 1.2, clouds: "white", rain: 0.45, wave: 1.1 },
+    overcast: { label: "overcast", bow: "normal", alpha: 0.4, twinkle: 0.3, clouds: "grey", rain: 0, wave: 1.1, sky: ["#ebecea", "#e8ebe8"] },
+    rain: { label: "rain", bow: "normal", alpha: 0.28, twinkle: 0, clouds: "grey", rain: 1, wave: 1.3, sky: ["#e3e6e7", "#e7eaea"] },
+    storm: { label: "thunderstorm", bow: "normal", alpha: 0.1, twinkle: 0, clouds: "dark", rain: 1.5, wave: 1.7, lightning: true, sky: ["#d6dade", "#dde1e3"] },
+    fog: { label: "fog", bow: "fog", alpha: 0.95, twinkle: 0.4, clouds: "grey", rain: 0, wave: 0.9, haze: true, sky: ["#eeefed", "#f0f1ef"] },
+    night: { label: "clear night", bow: "moon", alpha: 0.95, twinkle: 1.2, clouds: "white", rain: 0, wave: 1 }
+  };
+
   const SKY = {
     morning: ["#f7eee2", "#f1efe8"],
     afternoon: ["#f4f0e7", "#eef1ea"],
@@ -306,6 +320,8 @@
     visionPulse: 0,
     met: new Set(),
     part: "afternoon",
+    weather: Object.assign({ kind: "partly", live: false, temp: null, text: "" }, WEATHER_KINDS.partly),
+    waveK: 1,
     dirty: true,
     pointer: { cx: -999, cy: -999, x: -999, y: -999, active: false }
   };
@@ -432,7 +448,7 @@
   function paintBackdrop() {
     const z = S.byId;
     if (!z.top) return;
-    const sky = SKY[S.part] || SKY.afternoon;
+    const sky = (S.weather && S.weather.sky) || SKY[S.part] || SKY.afternoon;
     const tw = z.publications;
     const mn = z.news;
     const ab = z.experience;
@@ -514,9 +530,10 @@
   function level(x, i) {
     const w = WAVES[i == null ? 2 : i];
     const t = S.t;
+    const amp = w.amp * S.waveK;
     let y = S.surfaceY + w.off
-      + Math.sin(x * w.k + t * w.sp) * w.amp
-      + Math.sin(x * w.k * 2.15 + t * w.sp * 1.6 + 1.1) * w.amp * 0.4;
+      + Math.sin(x * w.k + t * w.sp) * amp
+      + Math.sin(x * w.k * 2.15 + t * w.sp * 1.6 + 1.1) * amp * 0.4;
     for (let j = 0; j < bumps.length; j++) {
       const b = bumps[j];
       const d = Math.abs(x - b.x) / b.w;
@@ -526,6 +543,7 @@
   }
 
   function drawWaves(dt) {
+    S.waveK += (S.weather.wave - S.waveK) * Math.min(1, dt * 0.8);
     for (let i = bumps.length - 1; i >= 0; i--) {
       bumps[i].age += dt;
       if (bumps[i].age > 2.6) bumps.splice(i, 1);
@@ -572,6 +590,12 @@
   // Sky: clouds that rain when poked, and stars at night.
   const cloudSheets = PX.CLOUDS.map(function (c) { return sheet(c); });
   const silverSheets = PX.CLOUDS.map(function (c) { return sheet(c, "silver", { D: "#9fb2bf", C: "#dbe4ea" }); });
+  const cloudTints = {
+    white: cloudSheets,
+    grey: PX.CLOUDS.map(function (c) { return sheet(c, "grey", { w: "#e4e8ea", C: "#cfd6da", D: "#aeb8be" }); }),
+    dark: PX.CLOUDS.map(function (c) { return sheet(c, "dark", { w: "#c3cad0", C: "#a5afb7", D: "#7f8b95" }); })
+  };
+  const storm = { next: rand(3, 6), flash: 0, bolt: null };
   const clouds = [];
   const stars = [];
   const raindrops = [];
@@ -611,9 +635,18 @@
         }
       }
     }
+    const W = S.weather;
+    if (W.haze) {
+      const grad = ctx.createLinearGradient(0, S.skyTop, 0, S.surfaceY);
+      grad.addColorStop(0, "rgba(244, 245, 243, 0)");
+      grad.addColorStop(0.55, "rgba(244, 245, 243, 0.55)");
+      grad.addColorStop(1, "rgba(244, 245, 243, 0.2)");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, S.skyTop, S.vw, S.surfaceY - S.skyTop);
+    }
     for (let i = 0; i < clouds.length; i++) {
       const c = clouds[i];
-      const sh = cloudSheets[c.kind];
+      const sh = (cloudTints[W.clouds] || cloudSheets)[c.kind];
       c.w = sh.width * c.scale;
       c.h = sh.height * c.scale;
       if (!S.reduced) c.x += c.speed * dt * (c.rain > 0 ? 0.3 : 1);
@@ -632,11 +665,68 @@
         ctx.drawImage(sh, x, y, c.w, c.h);
         ctx.globalAlpha = 1;
       }
-      if (c.rain > 0) {
-        c.rain -= dt;
-        const n = Math.random() < dt * 34 ? 2 : 0;
+      // A poked cloud pours; weather rain falls more lightly from every cloud.
+      const poked = c.rain > 0;
+      const wet = poked ? 1 : (S.reduced ? 0 : W.rain);
+      if (wet > 0) {
+        c.rain = Math.max(0, c.rain - dt);
+        const n = Math.random() < dt * (poked ? 34 : 9 * wet) ? (poked ? 2 : 1) : 0;
         for (let k = 0; k < n; k++) {
-          raindrops.push({ x: c.x + rand(10, c.w - 10), y: c.y + c.h - 6, vy: rand(230, 300) });
+          raindrops.push({ x: c.x + rand(6, c.w - 6), y: c.y + c.h - 6, vy: rand(230, 300), vx: poked ? 0 : windX() });
+        }
+      }
+    }
+  }
+
+  function windX() {
+    return S.weather.lightning ? rand(-75, -55) : rand(-24, -12);
+  }
+
+  function drawStorm(dt) {
+    const W = S.weather;
+    // Open-sky rain across the whole hero, not only under the clouds.
+    if (W.rain > 0 && !S.reduced && raindrops.length < 520) {
+      const n = Math.floor(W.rain * 95 * dt + Math.random());
+      for (let k = 0; k < n; k++) {
+        raindrops.push({ x: rand(-40, S.vw + 40), y: rand(S.skyTop - 40, S.surfaceY - 120), vy: rand(250, 340), vx: windX() });
+      }
+    }
+    if (!W.lightning || S.reduced) {
+      storm.flash = 0;
+      return;
+    }
+    storm.next -= dt;
+    if (storm.next <= 0) {
+      storm.next = rand(5, 11);
+      storm.flash = 0.55;
+      const c = pick(clouds);
+      const pts = [{ x: c.x + c.w / 2, y: c.y + c.h - 6 }];
+      const end = S.surfaceY - 14;
+      while (pts[pts.length - 1].y < end) {
+        const p = pts[pts.length - 1];
+        pts.push({ x: p.x + rand(-26, 26), y: Math.min(end, p.y + rand(22, 46)) });
+      }
+      storm.bolt = pts;
+      bump(pts[pts.length - 1].x, 16, 90);
+      splash(pts[pts.length - 1].x, 8);
+    }
+    if (storm.flash > 0) {
+      storm.flash -= dt;
+      const pulse = storm.flash > 0.4 || (storm.flash > 0.12 && storm.flash < 0.24) ? 1 : 0;
+      if (pulse) {
+        ctx.fillStyle = "rgba(255, 255, 248, 0.32)";
+        ctx.fillRect(0, S.view.top, S.vw, Math.max(0, S.surfaceY - S.view.top));
+        if (storm.bolt) {
+          ctx.fillStyle = "#fffbe0";
+          for (let i = 1; i < storm.bolt.length; i++) {
+            const a = storm.bolt[i - 1];
+            const b = storm.bolt[i];
+            const steps = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 3);
+            for (let k = 0; k <= steps; k++) {
+              const u = k / steps;
+              ctx.fillRect(Math.round((a.x + (b.x - a.x) * u) / 3) * 3, Math.round((a.y + (b.y - a.y) * u) / 3) * 3, 3, 3);
+            }
+          }
         }
       }
     }
@@ -646,6 +736,7 @@
     for (let i = raindrops.length - 1; i >= 0; i--) {
       const d = raindrops[i];
       d.y += d.vy * dt;
+      d.x += (d.vx || 0) * dt;
       const surface = level(d.x);
       if (d.y >= surface) {
         raindrops.splice(i, 1);
@@ -1573,6 +1664,7 @@
       f.life -= dt;
       if (f.life <= 0) {
         fx.splice(i, 1);
+        if (f.done) f.done();
         continue;
       }
       const k = 1 - f.life / f.max;
@@ -1608,6 +1700,27 @@
           const span = Math.sqrt(Math.max(0, r * r - yy * yy));
           ctx.fillRect(Math.round((f.x - span) / s) * s, Math.round((f.y + yy) / s) * s, Math.round(span * 2 / s) * s, s);
         }
+      } else if (f.k === "orb") {
+        // A rainbow orb thrown along an arc, trailing its colours.
+        const cols = ["#9d8fdc", "#6fb3dc", "#7cc48a", "#f2d36b", "#f0a35e", "#e9788a"];
+        const mx = (f.x0 + f.x1) / 2;
+        const my = Math.min(f.y0, f.y1) - 150;
+        const at = function (u) {
+          const v = 1 - u;
+          return { x: v * v * f.x0 + 2 * v * u * mx + u * u * f.x1, y: v * v * f.y0 + 2 * v * u * my + u * u * f.y1 };
+        };
+        const u = 1 - Math.pow(1 - k, 1.6);
+        for (let j = cols.length - 1; j >= 0; j--) {
+          const p = at(Math.max(0, u - (j + 1) * 0.028));
+          const size = Math.max(2, 7 - j);
+          ctx.fillStyle = cols[j];
+          ctx.fillRect(Math.round(p.x - size / 2), Math.round(p.y - size / 2), size, size);
+        }
+        const head = at(u);
+        ctx.fillStyle = "rgba(255, 252, 240, 0.35)";
+        ctx.fillRect(Math.round(head.x) - 8, Math.round(head.y) - 8, 16, 16);
+        ctx.fillStyle = "#fffcf7";
+        ctx.fillRect(Math.round(head.x) - 4, Math.round(head.y) - 4, 8, 8);
       } else if (f.k === "label") {
         ctx.save();
         ctx.globalAlpha = Math.min(1, (1 - k) * 1.6);
@@ -1772,6 +1885,7 @@
     S.view.bottom = oy + S.vh + 60;
     if (S.view.top < S.surfaceY + 60) {
       drawSky(dt);
+      drawStorm(dt);
       drawWaves(dt);
     }
     drawRays();
@@ -1799,6 +1913,10 @@
     const cy = y - S.sy;
     const photo = photoBubbles.hit(x, cy);
     if (photo) return function () { photoBubbles.pop(photo); };
+    const onTrack = arcade.hit(x, cy);
+    if (onTrack) return onTrack;
+    const onRainbow = rainbow.hit(x, cy);
+    if (onRainbow) return onRainbow;
     const b = hitBubble(x, y);
     if (b) return function () { b.pop = 0.001; };
     const s = hitSchool(x, y);
@@ -1861,7 +1979,7 @@
 
   function overScene(cx, cy) {
     const y = cy + S.sy;
-    if (photoBubbles.hit(cx, cy) || hitBubble(cx, y) || hitSchool(cx, y) || hitFloor(cx, y)) return true;
+    if (photoBubbles.hit(cx, cy) || arcade.hit(cx, cy) || rainbow.hit(cx, cy) || hitBubble(cx, y) || hitSchool(cx, y) || hitFloor(cx, y)) return true;
     if (y < S.surfaceY - 40) {
       for (let i = 0; i < clouds.length; i++) {
         const c = clouds[i];
@@ -2801,6 +2919,7 @@
       "Your personality: " + spec.persona + ".",
       "You are not Yiwei. Stay in character and speak as yourself: warm, playful and curious, never mean or sarcastic. No emoji, no markdown.",
       "Reply in one to three short sentences.",
+      S.weather.live && S.weather.text ? "Right now in Hong Kong it is " + S.weather.text + (S.weather.temp != null ? ", " + Math.round(S.weather.temp) + " degrees C" : "") + "; mention it only if it fits naturally." : "",
       chinese ? "The visitor wrote in Chinese. Reply in Chinese only." : "The visitor wrote in English. Reply in English only.",
       "If asked about Yiwei, use only these facts. If you do not know, say so. Do not invent papers, emails, dates, or affiliations.",
       FACTS
@@ -3569,52 +3688,66 @@
     };
   })();
 
+  // The arcade loop around the portrait: a snake and Pac-Man (with two ghosts) run the track
+  // in opposite directions and bump into each other. A power pellet (thrown from the rainbow)
+  // turns whoever eats it rainbow: Pac-Man can then chase and eat the frightened ghosts,
+  // the snake grows long and fast. Each of them reacts to a click.
   const arcade = (function () {
     const canvas = document.getElementById("arcade");
     const frame = document.querySelector(".portrait-frame");
-    if (!canvas || !frame) return { tick: function () {} };
+    const none = { tick: function () {}, hit: function () { return null; }, powerTarget: function () { return null; }, setPower: function () {} };
+    if (!canvas || !frame) return none;
     const ac = canvas.getContext("2d");
+    const RAINBOW = ["#e9788a", "#f0a35e", "#f2d36b", "#7cc48a", "#6fb3dc", "#9d8fdc"];
+    const BASE_LEN = 12;
+    const PUNCH = 0.3;
+    const TURN = 0.46;
+    const box = { width: 0, height: 0, docLeft: 0, docTop: 0 };
     let track = [];
-    let snake = [];
-    let trail = [];
-    let pacHead = 0;
-    let snakeDir = 1;
-    let pacDir = -1;
-    let pellet = 12;
-    let acc = 0;
-    let cool = 0;
+    let len = 0;
+    const snake = { segs: [], dir: 1, extra: 0, rainbow: 0, acc: 0 };
+    const pac = { idx: 0, dir: -1, power: 0, acc: 0, wink: 0 };
+    const ghosts = [
+      { sprite: 0, back: 14, idx: 0, state: "trail", boo: 0 },
+      { sprite: 1, back: 28, idx: 0, state: "trail", boo: 0 }
+    ];
+    const trail = [];
+    let ghostAcc = 0;
+    let pellet = 14;
+    let power = -1;
+    let combo = 0;
     let mode = "run";
     let modeT = 0;
     let punchX = 0;
     let punchY = 0;
-    let spaced = false;
-    const snakeLen = 12;
-    const punchDur = 0.3;
-    const turnDur = 0.46;
+    let cool = 0;
+    let started = false;
 
-    const box = { width: 0, height: 0 };
     onLayout(function () {
       const rect = canvas.getBoundingClientRect();
       const ratio = Math.min(window.devicePixelRatio || 1, 2);
       box.width = rect.width;
       box.height = rect.height;
+      box.docLeft = rect.left;
+      box.docTop = rect.top + S.sy;
       canvas.width = Math.max(1, Math.floor(rect.width * ratio));
       canvas.height = Math.max(1, Math.floor(rect.height * ratio));
       ac.setTransform(ratio, 0, 0, ratio, 0, 0);
       buildTrack(rect);
     });
 
-    function buildTrack(box) {
+    function buildTrack(rect) {
       const photo = frame.getBoundingClientRect();
       if (photo.width < 20) {
         track = [];
+        len = 0;
         return;
       }
       const margin = 12;
-      const left = photo.left - box.left - margin;
-      const top = photo.top - box.top - margin;
-      const right = photo.right - box.left + margin;
-      const bottom = photo.bottom - box.top + margin;
+      const left = photo.left - rect.left - margin;
+      const top = photo.top - rect.top - margin;
+      const right = photo.right - rect.left + margin;
+      const bottom = photo.bottom - rect.top + margin;
       const step = 8;
       const pts = [];
       function edge(x0, y0, x1, y1) {
@@ -3625,30 +3758,126 @@
       edge(right, top, right, bottom);
       edge(right, bottom, left, bottom);
       edge(left, bottom, left, top);
+      const resized = len && pts.length !== len;
       track = pts;
-      if (pellet >= track.length) pellet = 0;
+      len = pts.length;
+      if (resized) started = false;
+    }
+
+    function mod(i) { return ((i % len) + len) % len; }
+    function circ(a, b) {
+      const d = Math.abs(a - b) % len;
+      return Math.min(d, len - d);
+    }
+    function towards(from, to) { return mod(to - from) <= len / 2 ? 1 : -1; }
+    function docPoint(i) {
+      const p = track[mod(i)];
+      return { x: box.docLeft + p.x, y: box.docTop + p.y };
+    }
+    function say(i, text, col) {
+      const d = docPoint(i);
+      addFx({ k: "label", x: d.x, y: d.y - 12, vx: 0, g: 0, vy: -24, text: text, col: col || "255, 210, 122", life: 1.3, max: 1.3 });
+    }
+    function burst(i, col, n) {
+      const d = docPoint(i);
+      sparks(d.x, d.y, n || 10, col);
+    }
+
+    function reset() {
+      pac.idx = Math.floor(len / 2);
+      pac.dir = -1;
+      snake.dir = 1;
+      snake.segs = [];
+      for (let s = 0; s < BASE_LEN; s++) snake.segs.push(mod(-s * snake.dir));
+      trail.length = 0;
+      for (let i = 30; i >= 0; i--) trail.push(mod(pac.idx - i * pac.dir));
+      pellet = 14;
+      power = -1;
+      mode = "run";
+      started = true;
+    }
+
+    function startPower(seconds, why) {
+      pac.power = seconds;
+      combo = 0;
+      ghosts.forEach(function (g) {
+        if (g.state !== "eaten") g.state = "fright";
+      });
+      let best = null;
+      ghosts.forEach(function (g) {
+        if (g.state === "fright" && (!best || circ(pac.idx, g.idx) < circ(pac.idx, best.idx))) best = g;
+      });
+      if (best) pac.dir = towards(pac.idx, best.idx);
+      say(pac.idx, why || "Rainbow power!");
+      burst(pac.idx, "255, 210, 122", 14);
+    }
+
+    function endPower() {
+      pac.power = 0;
+      ghosts.forEach(function (g) {
+        if (g.state !== "trail") burst(g.idx, "111, 174, 212", 6);
+        g.state = "trail";
+      });
+    }
+
+    function stepPac() {
+      pac.idx = mod(pac.idx + pac.dir);
+      trail.push(pac.idx);
+      if (trail.length > 48) trail.shift();
+      if (power >= 0 && circ(pac.idx, power) <= 1) {
+        power = -1;
+        startPower(7);
+      }
+      if (pac.power > 0) {
+        ghosts.forEach(function (g) {
+          if (g.state === "fright" && circ(pac.idx, g.idx) <= 1) {
+            g.state = "eaten";
+            combo += 1;
+            say(g.idx, String(100 * Math.pow(2, combo)), "111, 245, 223");
+            burst(g.idx, "111, 245, 223", 12);
+          }
+        });
+      }
+    }
+
+    function stepSnake() {
+      snake.segs.unshift(mod(snake.segs[0] + snake.dir));
+      if (snake.segs.length > BASE_LEN + snake.extra) snake.segs.pop();
+      if (snake.segs.length > BASE_LEN + snake.extra) snake.segs.pop();
+      if (snake.segs[0] === pellet) pellet = mod(pellet + 17 * snake.dir);
+      if (power >= 0 && circ(snake.segs[0], power) <= 1) {
+        power = -1;
+        snake.rainbow = 8;
+        snake.extra = 9;
+        say(snake.segs[0], "Rainbow snake!");
+        burst(snake.segs[0], "255, 210, 122", 14);
+      }
+    }
+
+    function stepGhosts() {
+      ghosts.forEach(function (g) {
+        if (g.state === "fright") g.idx = mod(g.idx - towards(g.idx, pac.idx));
+      });
+    }
+
+    function checkBump() {
+      if (cool > 0 || pac.power > 0) return false;
+      for (let s = 0; s < snake.segs.length; s++) {
+        if (circ(pac.idx, snake.segs[s]) <= 1) {
+          const p = track[snake.segs[s]];
+          punchX = p.x;
+          punchY = p.y;
+          mode = "punch";
+          modeT = 0;
+          return true;
+        }
+      }
+      return false;
     }
 
     function facing(from, to) {
       if (Math.abs(to.x - from.x) > Math.abs(to.y - from.y)) return to.x >= from.x ? "e" : "w";
       return to.y >= from.y ? "s" : "n";
-    }
-
-    function blit(lines, x, y, scale, angle) {
-      const h = lines.length;
-      const w = lines[0].length;
-      ac.save();
-      ac.translate(x, y);
-      ac.rotate(angle || 0);
-      for (let row = 0; row < h; row++) {
-        for (let col = 0; col < w; col++) {
-          const color = PAL[lines[row][col]];
-          if (!color) continue;
-          ac.fillStyle = color;
-          ac.fillRect((col - w / 2) * scale, (row - h / 2) * scale, scale, scale);
-        }
-      }
-      ac.restore();
     }
 
     function faceAngle(face) {
@@ -3658,138 +3887,229 @@
       return 0;
     }
 
+    function travelAngle(dir, idx) { return faceAngle(facing(track[idx], track[mod(idx + dir)])); }
+
+    function blit(lines, x, y, scale, angle, over) {
+      const h = lines.length;
+      const w = lines[0].length;
+      ac.save();
+      ac.translate(x, y);
+      ac.rotate(angle || 0);
+      for (let row = 0; row < h; row++) {
+        for (let col = 0; col < w; col++) {
+          const ch = lines[row][col];
+          const color = over && over[ch] !== undefined ? over[ch] : PAL[ch];
+          if (!color) continue;
+          ac.fillStyle = color;
+          ac.fillRect((col - w / 2) * scale, (row - h / 2) * scale, scale, scale);
+        }
+      }
+      ac.restore();
+    }
+
+    function update(dt) {
+      if (pac.power > 0) {
+        pac.power -= dt;
+        if (pac.power <= 0) endPower();
+      }
+      if (snake.rainbow > 0) {
+        snake.rainbow -= dt;
+        if (snake.rainbow <= 0) snake.extra = 0;
+      }
+      ghosts.forEach(function (g) { g.boo = Math.max(0, g.boo - dt); });
+      pac.wink = Math.max(0, pac.wink - dt);
+      if (mode !== "run") {
+        modeT += dt;
+        if (mode === "punch" && modeT >= PUNCH) {
+          mode = "turn";
+          modeT = 0;
+        } else if (mode === "turn" && modeT >= TURN) {
+          snake.dir *= -1;
+          pac.dir *= -1;
+          mode = "run";
+          cool = 0.55;
+        }
+        return;
+      }
+      cool = Math.max(0, cool - dt);
+      const pacStep = pac.power > 0 ? 0.08 : 0.11;
+      pac.acc += dt;
+      while (pac.acc >= pacStep && mode === "run") {
+        pac.acc -= pacStep;
+        stepPac();
+        if (checkBump()) pac.acc = 0;
+      }
+      const snakeStep = snake.rainbow > 0 ? 0.075 : 0.11;
+      snake.acc += dt;
+      while (snake.acc >= snakeStep && mode === "run") {
+        snake.acc -= snakeStep;
+        stepSnake();
+        if (checkBump()) snake.acc = 0;
+      }
+      ghostAcc += dt;
+      while (ghostAcc >= 0.2) {
+        ghostAcc -= 0.2;
+        stepGhosts();
+      }
+    }
+
+    function draw(now) {
+      for (let i = 0; i < len; i += 3) {
+        if (circ(i, pac.idx) < 3) continue;
+        ac.fillStyle = "rgba(226, 196, 138, 0.85)";
+        ac.fillRect(Math.round(track[i].x) - 1, Math.round(track[i].y) - 1, 2, 2);
+      }
+      if (power >= 0) {
+        const p = track[power];
+        const s = 6 + Math.round(Math.sin(now / 140));
+        ac.fillStyle = RAINBOW[Math.floor(now / 90) % RAINBOW.length];
+        ac.fillRect(Math.round(p.x - s / 2), Math.round(p.y - s / 2), s, s);
+        ac.fillStyle = "rgba(255, 255, 255, 0.9)";
+        ac.fillRect(Math.round(p.x - s / 2) + 1, Math.round(p.y - s / 2) + 1, 2, 2);
+      }
+      const food = track[pellet];
+      ac.fillStyle = "#d9896a";
+      ac.fillRect(Math.round(food.x) - 2, Math.round(food.y) - 2, 4, 4);
+
+      const spin = mode === "turn" ? Math.PI * (function (u) { return u * u * (3 - 2 * u); })(Math.min(1, modeT / TURN)) : 0;
+      const recoil = mode === "punch" ? Math.sin(Math.min(1, modeT / PUNCH) * Math.PI) * 3.5 : 0;
+      const snakeAngle = travelAngle(snake.dir, snake.segs[0]);
+      const glowing = snake.rainbow > 0;
+      for (let s = snake.segs.length - 1; s >= 0; s--) {
+        const pt = track[snake.segs[s]];
+        const head = s === 0;
+        const size = head ? 8 : 7;
+        const hx = head ? pt.x - Math.cos(snakeAngle) * recoil : pt.x;
+        const hy = head ? pt.y - Math.sin(snakeAngle) * recoil : pt.y;
+        if (glowing) ac.fillStyle = head ? "#1a4743" : RAINBOW[(s + Math.floor(now / 80)) % RAINBOW.length];
+        else ac.fillStyle = head ? "#1a4743" : (s % 2 ? "#3f7f76" : "#2c6158");
+        ac.fillRect(Math.round(hx) - (size >> 1), Math.round(hy) - (size >> 1), size, size);
+        if (!head) {
+          ac.fillStyle = glowing ? "rgba(255, 255, 255, 0.85)" : "#a9d2c8";
+          ac.fillRect(Math.round(pt.x) - 1, Math.round(pt.y) - 1, 2, 2);
+          continue;
+        }
+        const look = snakeAngle + spin;
+        const fx0 = Math.cos(look) * 2.2;
+        const fy0 = Math.sin(look) * 2.2;
+        const px = -Math.sin(look) * 1.6;
+        const py = Math.cos(look) * 1.6;
+        ac.fillStyle = "#fffcf7";
+        ac.fillRect(Math.round(hx + fx0 + px) - 1, Math.round(hy + fy0 + py) - 1, 2, 2);
+        ac.fillRect(Math.round(hx + fx0 - px) - 1, Math.round(hy + fy0 - py) - 1, 2, 2);
+      }
+
+      const pacAngle = travelAngle(pac.dir, pac.idx);
+      const open = Math.floor(now / (pac.power > 0 ? 90 : 160)) % 2 === 0;
+      const pacX = track[pac.idx].x - Math.cos(pacAngle) * recoil;
+      const pacY = track[pac.idx].y - Math.sin(pacAngle) * recoil;
+      const pacOver = pac.power > 0 ? { o: RAINBOW[Math.floor(now / 70) % RAINBOW.length] } : null;
+      if (pac.power > 0) {
+        ac.fillStyle = "rgba(255, 246, 214, 0.35)";
+        ac.fillRect(Math.round(pacX) - 10, Math.round(pacY) - 10, 20, 20);
+      }
+      blit(open || pac.wink > 0 ? PX.PAC_OPEN.e : PX.PAC_SHUT, pacX, pacY, pac.wink > 0 ? 3 : 2, pacAngle + spin, pacOver);
+
+      ghosts.forEach(function (g) {
+        if (g.state === "trail") {
+          const at = Math.max(0, trail.length - 1 - g.back);
+          g.idx = trail[at];
+        }
+        const prev = mod(g.idx - pac.dir);
+        const angle = faceAngle(facing(track[prev], track[g.idx]));
+        let over = null;
+        if (g.state === "fright") {
+          const flash = pac.power < 1.5 && Math.floor(now / 160) % 2 === 0;
+          const body = flash ? "#f4f7ff" : "#2f4fd8";
+          over = { r: body, u: body, n: flash ? "#e9788a" : "#ffd27a", w: flash ? "#e9788a" : "#ffd27a" };
+        } else if (g.state === "eaten") {
+          over = { r: null, u: null };
+        } else if (g.boo > 0 && Math.floor(now / 90) % 2 === 0) {
+          over = { r: "#fffcf7", u: "#fffcf7" };
+        }
+        const wobble = g.boo > 0 ? Math.sin(now / 40) * 2 : 0;
+        blit(PX.GHOSTS[g.sprite], track[g.idx].x + wobble, track[g.idx].y, g.boo > 0 ? 3 : 2, angle, over);
+      });
+
+      if (mode === "punch") {
+        const t = Math.min(1, modeT / PUNCH);
+        ac.save();
+        ac.globalAlpha = Math.max(0, 1 - t);
+        ac.fillStyle = "#fffcf7";
+        const arm = Math.round(6 + t * 16);
+        ac.fillRect(Math.round(punchX) - arm, Math.round(punchY) - 2, arm * 2, 5);
+        ac.fillRect(Math.round(punchX) - 2, Math.round(punchY) - arm, 5, arm * 2);
+        ac.fillStyle = "#f2c94c";
+        const bx = Math.max(3, Math.round(10 * (1 - t)));
+        ac.fillRect(Math.round(punchX) - (bx >> 1), Math.round(punchY) - (bx >> 1), bx, bx);
+        for (let i = 0; i < 8; i++) {
+          const ang = (i / 8) * TAU + 0.35;
+          const dist = 6 + t * 22;
+          ac.fillStyle = i % 2 ? "#fffcf7" : "#e07b86";
+          ac.fillRect(Math.round(punchX + Math.cos(ang) * dist) - 2, Math.round(punchY + Math.sin(ang) * dist) - 2, 4, 4);
+        }
+        ac.restore();
+      }
+    }
+
+    function near(cx, cy, idx, r) {
+      const p = track[mod(idx)];
+      return Math.hypot(cx - p.x, cy - p.y) <= r;
+    }
+
     return {
       tick: function (dt, now) {
         if (S.sy > S.surfaceY) return;
         ac.clearRect(0, 0, box.width, box.height);
-        const len = track.length;
         if (len < 8) return;
-        function mod(i) { return (i % len + len) % len; }
-        function circ(a, b) {
-          const d = Math.abs(a - b) % len;
-          return Math.min(d, len - d);
+        if (!started) reset();
+        if (!S.reduced) update(dt);
+        draw(now);
+      },
+      // Client coordinates in; returns what to do if something on the track was clicked.
+      hit: function (clientX, clientY) {
+        if (len < 8 || !started || S.sy > S.surfaceY) return null;
+        const x = clientX - box.docLeft;
+        const y = clientY + S.sy - box.docTop;
+        if (near(x, y, pac.idx, 12)) {
+          return function () {
+            pac.wink = 0.35;
+            if (pac.power > 0) say(pac.idx, "Waka waka!");
+            else startPower(4, "Waka!");
+          };
         }
-        if (!spaced) {
-          pacHead = Math.floor(len / 2);
-          pellet = 14;
-          snake = [];
-          for (let s = 0; s < snakeLen; s++) snake.push(mod(-s * snakeDir));
-          trail = [];
-          for (let i = 28; i >= 0; i--) trail.push(mod(pacHead - i * pacDir));
-          spaced = true;
-        }
-        snake = snake.map(mod);
-        trail = trail.map(mod);
-        pacHead = mod(pacHead);
-        function travelAngle(dir, idx) { return faceAngle(facing(track[idx], track[mod(idx + dir)])); }
-        if (!S.reduced) {
-          if (mode === "run") {
-            acc += dt;
-            cool = Math.max(0, cool - dt);
-            let steps = 0;
-            while (acc >= 0.11 && steps < 4) {
-              acc -= 0.11;
-              steps += 1;
-              snake.unshift(mod(snake[0] + snakeDir));
-              snake.pop();
-              pacHead = mod(pacHead + pacDir);
-              trail.push(pacHead);
-              if (trail.length > 48) trail.shift();
-              if (snake[0] === pellet) pellet = mod(pellet + 17 * snakeDir);
-              if (cool > 0) continue;
-              let hit = -1;
-              for (let s = 0; s < snake.length; s++) {
-                if (circ(pacHead, snake[s]) <= 1) {
-                  hit = snake[s];
-                  break;
-                }
-              }
-              if (hit < 0) continue;
-              punchX = track[hit].x;
-              punchY = track[hit].y;
-              mode = "punch";
-              modeT = 0;
-              acc = 0;
-              break;
-            }
-          } else {
-            acc = 0;
-            modeT += dt;
-            if (mode === "punch" && modeT >= punchDur) {
-              mode = "turn";
-              modeT = 0;
-            } else if (mode === "turn" && modeT >= turnDur) {
-              snakeDir *= -1;
-              pacDir *= -1;
-              mode = "run";
-              modeT = 0;
-              cool = 0.55;
-            }
+        for (let i = 0; i < ghosts.length; i++) {
+          const g = ghosts[i];
+          if (g.state !== "eaten" && near(x, y, g.idx, 11)) {
+            return function () {
+              g.boo = 0.9;
+              say(g.idx, g.state === "fright" ? "Eek!" : "Boo!", "233, 120, 138");
+            };
           }
         }
-        for (let i = 0; i < len; i += 3) {
-          if (circ(i, pacHead) < 3) continue;
-          ac.fillStyle = "rgba(226, 196, 138, 0.85)";
-          ac.fillRect(Math.round(track[i].x) - 1, Math.round(track[i].y) - 1, 2, 2);
-        }
-        const spin = mode === "turn" ? Math.PI * (function (u) { return u * u * (3 - 2 * u); })(Math.min(1, modeT / turnDur)) : 0;
-        const recoil = mode === "punch" ? Math.sin(Math.min(1, modeT / punchDur) * Math.PI) * 3.5 : 0;
-        const snakeAngle = travelAngle(snakeDir, snake[0]);
-        const pacAngle = travelAngle(pacDir, pacHead);
-        for (let s = snake.length - 1; s >= 0; s--) {
-          const pt = track[mod(snake[s])];
-          const head = s === 0;
-          const size = head ? 8 : 7;
-          const hx = head ? pt.x - Math.cos(snakeAngle) * recoil : pt.x;
-          const hy = head ? pt.y - Math.sin(snakeAngle) * recoil : pt.y;
-          ac.fillStyle = head ? "#1a4743" : (s % 2 ? "#3f7f76" : "#2c6158");
-          ac.fillRect(Math.round(hx) - (size >> 1), Math.round(hy) - (size >> 1), size, size);
-          if (!head) {
-            ac.fillStyle = "#a9d2c8";
-            ac.fillRect(Math.round(pt.x) - 1, Math.round(pt.y) - 1, 2, 2);
-            continue;
+        for (let s = 0; s < snake.segs.length; s++) {
+          if (near(x, y, snake.segs[s], 9)) {
+            return function () {
+              snake.rainbow = 6;
+              snake.extra = 6;
+              say(snake.segs[0], "Hiss!", "124, 196, 138");
+              burst(snake.segs[0], "124, 196, 138", 10);
+            };
           }
-          const look = snakeAngle + spin;
-          const fx0 = Math.cos(look) * 2.2;
-          const fy0 = Math.sin(look) * 2.2;
-          const px = -Math.sin(look) * 1.6;
-          const py = Math.cos(look) * 1.6;
-          ac.fillStyle = "#fffcf7";
-          ac.fillRect(Math.round(hx + fx0 + px) - 1, Math.round(hy + fy0 + py) - 1, 2, 2);
-          ac.fillRect(Math.round(hx + fx0 - px) - 1, Math.round(hy + fy0 - py) - 1, 2, 2);
         }
-        const food = track[mod(pellet)];
-        ac.fillStyle = "#d9896a";
-        ac.fillRect(Math.round(food.x) - 2, Math.round(food.y) - 2, 4, 4);
-        const open = Math.floor(now / 160) % 2 === 0;
-        const pacX = track[pacHead].x - Math.cos(pacAngle) * recoil;
-        const pacY = track[pacHead].y - Math.sin(pacAngle) * recoil;
-        blit(open ? PX.PAC_OPEN.e : PX.PAC_SHUT, pacX, pacY, 2, pacAngle + spin);
-        [14, 28].forEach(function (back, gi) {
-          const at = Math.max(0, trail.length - 1 - back);
-          const prev = Math.max(0, at - 1);
-          const ga = faceAngle(facing(track[trail[prev]], track[trail[at]]));
-          blit(PX.GHOSTS[gi], track[trail[at]].x, track[trail[at]].y, 2, ga);
-        });
-        if (mode === "punch") {
-          const t = Math.min(1, modeT / punchDur);
-          ac.save();
-          ac.globalAlpha = Math.max(0, 1 - t);
-          ac.fillStyle = "#fffcf7";
-          const arm = Math.round(6 + t * 16);
-          ac.fillRect(Math.round(punchX) - arm, Math.round(punchY) - 2, arm * 2, 5);
-          ac.fillRect(Math.round(punchX) - 2, Math.round(punchY) - arm, 5, arm * 2);
-          ac.fillStyle = "#f2c94c";
-          const bx = Math.max(3, Math.round(10 * (1 - t)));
-          ac.fillRect(Math.round(punchX) - (bx >> 1), Math.round(punchY) - (bx >> 1), bx, bx);
-          for (let i = 0; i < 8; i++) {
-            const ang = (i / 8) * TAU + 0.35;
-            const dist = 6 + t * 22;
-            ac.fillStyle = i % 2 ? "#fffcf7" : "#e07b86";
-            ac.fillRect(Math.round(punchX + Math.cos(ang) * dist) - 2, Math.round(punchY + Math.sin(ang) * dist) - 2, 4, 4);
-          }
-          ac.restore();
-        }
+        return null;
+      },
+      // Where a thrown power pellet should land: on the far side from Pac-Man.
+      powerTarget: function () {
+        if (len < 8 || !started) return null;
+        const idx = mod(pac.idx + Math.floor(len / 2));
+        const d = docPoint(idx);
+        return { x: d.x, y: d.y, idx: idx };
+      },
+      setPower: function (idx) {
+        if (len < 8) return;
+        power = mod(idx);
+        burst(power, "255, 210, 122", 10);
       }
     };
   })();
@@ -3843,43 +4163,345 @@
     });
   })();
 
+  // The rainbow over the quote: a pixel arc standing on two clouds. It draws itself in,
+  // a silver shimmer sweeps across it, stars twinkle along it, it glows where the cursor
+  // is, and a click sends a ripple through it and throws a power pellet to the arcade.
   const rainbow = (function () {
     const canvas = document.getElementById("rainbow");
-    if (!canvas) return { tick: function () {} };
+    const none = { tick: function () {}, hit: function () { return null; } };
+    if (!canvas) return none;
     const rc = canvas.getContext("2d");
-    const colors = ["#e07b86", "#e6a15c", "#e6d36a", "#7dbe78", "#6eb0d4", "#9a8fd4"];
-    let cw = 0;
-    let ch = 0;
+    const BANDS = ["#e9788a", "#f0a35e", "#f2d36b", "#7cc48a", "#6fb3dc", "#9d8fdc"];
+    // A fogbow is nearly white; a moonbow is pale and silvery.
+    const PALETTES = {
+      normal: BANDS,
+      fog: ["#e3c7cd", "#e7d6c4", "#e8e1c7", "#d2e2d3", "#cddbe6", "#d8d2e8"],
+      moon: ["#b9b7d3", "#c3c0d8", "#cfcce0", "#bfcadb", "#b3c3db", "#bbb3d6"]
+    };
+    const CELL = 4;
+    const LEVELS = 6;
+    function shadeSet(list) {
+      return list.map(function (hex) {
+        const n = parseInt(hex.slice(1), 16);
+        const r = n >> 16;
+        const g = (n >> 8) & 255;
+        const b = n & 255;
+        const out = [];
+        for (let l = 0; l < LEVELS; l++) {
+          const k = l * 0.11;
+          out.push("rgb(" + Math.round(r + (255 - r) * k) + "," + Math.round(g + (255 - g) * k) + "," + Math.round(b + (255 - b) * k) + ")");
+        }
+        return out;
+      });
+    }
+    const SHADES = { normal: shadeSet(PALETTES.normal), fog: shadeSet(PALETTES.fog), moon: shadeSet(PALETTES.moon) };
+    let look = 1;
+    let dbl = 0;
+    const cloud = sheet(PX.CLOUDS[1]);
+    const geo = { w: 0, h: 0, docLeft: 0, docTop: 0, x0: 0, x1: 0, base: 0, amp: 0 };
+    let reveal = S.reduced ? 1 : 0;
+    let delay = 0.35;
+    const waves = [];
+    const stars = [];
+    let nextStar = 0;
+    let hoverX = null;
+
     onLayout(function () {
       const rect = canvas.getBoundingClientRect();
       const ratio = Math.min(window.devicePixelRatio || 1, 2);
-      cw = rect.width;
-      ch = rect.height;
-      canvas.width = Math.max(1, Math.floor(cw * ratio));
-      canvas.height = Math.max(1, Math.floor(ch * ratio));
+      geo.w = rect.width;
+      geo.h = rect.height;
+      geo.docLeft = rect.left;
+      geo.docTop = rect.top + S.sy;
+      geo.x0 = 22;
+      geo.x1 = Math.max(geo.x0 + 40, rect.width - 22);
+      geo.base = rect.height - 12;
+      geo.amp = Math.max(20, geo.base - 10 - BANDS.length * CELL);
+      canvas.width = Math.max(1, Math.floor(rect.width * ratio));
+      canvas.height = Math.max(1, Math.floor(rect.height * ratio));
       rc.setTransform(ratio, 0, 0, ratio, 0, 0);
     });
-    return {
-      tick: function (now) {
-        if (S.sy > S.surfaceY || cw < 2) return;
-        rc.clearRect(0, 0, cw, ch);
-        const step = 8;
-        const phase = S.reduced ? 0 : now / 220;
-        for (let band = 0; band < 4; band++) {
-          for (let i = 0; i <= cw - step; i += step) {
-            const t = i / cw;
-            const arch = Math.sin(t * Math.PI);
-            const shimmer = S.reduced ? 0 : Math.sin(now / 380 + i * 0.08) * 1.2;
-            const y = ch - 10 - arch * (ch * 0.72) + band * 5 + shimmer;
-            const index = Math.floor(t * colors.length * 2 + phase + band) % colors.length;
-            rc.globalAlpha = 0.9 - band * 0.12;
-            rc.fillStyle = colors[(index + colors.length) % colors.length];
-            rc.fillRect(i, y, step - 2, 4);
+
+    // Top edge of the arc at canvas x: a half circle, snapped to the pixel grid.
+    // With a double rainbow the main arc sits a little lower to make room for the second.
+    function archY(x) {
+      const t = clamp((x - geo.x0) / (geo.x1 - geo.x0), 0, 1);
+      const lift = Math.sqrt(Math.max(0, 1 - Math.pow(2 * t - 1, 2)));
+      return geo.base - BANDS.length * CELL - lift * (geo.amp - dbl * 12);
+    }
+
+    function waveOffset(x) {
+      let y = 0;
+      for (let i = 0; i < waves.length; i++) {
+        const w = waves[i];
+        const front = w.t * 260;
+        const d = Math.abs(x - w.x);
+        if (d > front) continue;
+        y += Math.sin((front - d) * 0.09) * 7 * Math.exp(-w.t * 2.2) * Math.exp(-(front - d) / 140);
+      }
+      return y;
+    }
+
+    function star(x, y, size, col, a) {
+      rc.globalAlpha = a;
+      rc.fillStyle = col;
+      rc.fillRect(x - 1, y - 1, 2, 2);
+      if (size > 1) {
+        rc.fillRect(x - 1, y - 1 - size * 2, 2, size * 2 - 2);
+        rc.fillRect(x - 1, y + 1, 2, size * 2 - 2);
+        rc.fillRect(x - 1 - size * 2, y - 1, size * 2 - 2, 2);
+        rc.fillRect(x + 1, y - 1, size * 2 - 2, 2);
+      }
+      rc.globalAlpha = 1;
+    }
+
+    function tick(dt, now) {
+      if (S.sy > S.surfaceY || geo.w < 2) return;
+      const t = now / 1000;
+      if (!S.reduced) {
+        if (delay > 0) delay -= dt;
+        else reveal = Math.min(1, reveal + dt / 1.6);
+      }
+      for (let i = waves.length - 1; i >= 0; i--) {
+        waves[i].t += dt;
+        if (waves[i].t > 2.2) waves.splice(i, 1);
+      }
+      // Hover: the arc glows under the cursor.
+      hoverX = null;
+      if (P.active) {
+        const x = P.cx - geo.docLeft;
+        const y = P.cy + S.sy - geo.docTop;
+        if (x > 0 && x < geo.w && y > -10 && y < geo.h + 10) hoverX = x;
+      }
+      rc.clearRect(0, 0, geo.w, geo.h);
+      const W = S.weather;
+      const ease = S.reduced ? 1 : Math.min(1, dt * 1.5);
+      look += (W.alpha - look) * ease;
+      dbl += ((W.double ? 1 : 0) - dbl) * ease;
+      const shades = SHADES[W.bow] || SHADES.normal;
+      const edge = geo.x0 + (geo.x1 - geo.x0) * (1 - Math.pow(1 - reveal, 3));
+      const sweep = S.reduced ? -999 : ((t * 0.16) % 1.6 - 0.3) * geo.w;
+      const breathe = (S.reduced ? 1 : 0.9 + 0.08 * Math.sin(t * 1.3)) * look;
+      // The secondary bow of a double rainbow: fainter, thinner, colours reversed.
+      if (dbl > 0.02) {
+        rc.globalAlpha = 0.5 * dbl * breathe;
+        for (let x = geo.x0 - 6; x <= Math.min(edge, geo.x1 + 6); x += CELL) {
+          const y = Math.round((archY(clamp(x, geo.x0, geo.x1)) - 12 + waveOffset(x)) / 2) * 2;
+          for (let b = 0; b < BANDS.length; b++) {
+            rc.fillStyle = shades[BANDS.length - 1 - b][1];
+            rc.fillRect(x, y + b * 2 - 2, CELL, 2);
           }
         }
         rc.globalAlpha = 1;
       }
+      let prev = null;
+      for (let x = geo.x0; x <= edge; x += CELL) {
+        const y = Math.round((archY(x) + waveOffset(x)) / CELL) * CELL;
+        let glow = Math.exp(-Math.pow((x - sweep) / 46, 2)) * 0.75;
+        if (hoverX !== null) glow += Math.exp(-Math.pow((x - hoverX) / 38, 2)) * 0.9;
+        if (Math.abs(x - edge) < 10 && reveal < 1) glow += 0.9;
+        const level = Math.min(LEVELS - 1, Math.round(glow * (LEVELS - 1)));
+        const lift = hoverX !== null ? -Math.round(Math.exp(-Math.pow((x - hoverX) / 30, 2)) * 1.4) * 2 : 0;
+        const top = Math.min(prev === null ? y : prev, y) + lift;
+        const span = Math.abs(y - (prev === null ? y : prev)) + CELL;
+        rc.globalAlpha = breathe;
+        for (let b = 0; b < BANDS.length; b++) {
+          rc.fillStyle = shades[b][level];
+          rc.fillRect(x, top + b * CELL, CELL, span);
+        }
+        prev = y;
+      }
+      rc.globalAlpha = 1;
+      // The leading tip while drawing in.
+      if (reveal < 1 && reveal > 0) {
+        star(Math.round(edge / 2) * 2, Math.round((archY(edge) - 4) / 2) * 2, 2, "#fffcf7", 0.95);
+      }
+      // Twinkling stars along the arc.
+      if (!S.reduced && reveal >= 1 && W.twinkle > 0) {
+        nextStar -= dt * W.twinkle;
+        if (nextStar <= 0) {
+          nextStar = rand(0.25, 0.6);
+          const x = rand(geo.x0 + 10, geo.x1 - 10);
+          const silver = W.bow === "moon" || W.bow === "fog";
+          stars.push({ x: Math.round(x / 2) * 2, y: Math.round((archY(x) - rand(4, 16)) / 2) * 2, age: 0, life: rand(0.7, 1.2), size: Math.random() < 0.3 ? 2 : 1, col: Math.random() < 0.5 ? "#fffcf7" : (silver ? "#c9cfe6" : "#f2d36b") });
+        }
+      }
+      for (let i = stars.length - 1; i >= 0; i--) {
+        const s = stars[i];
+        s.age += dt;
+        if (s.age >= s.life) {
+          stars.splice(i, 1);
+          continue;
+        }
+        star(s.x, s.y, s.size, s.col, Math.sin(Math.PI * s.age / s.life) * Math.max(0.3, look));
+      }
+      // Clouds at both feet of the rainbow ("every cloud has a silver lining").
+      if (reveal > 0.02) {
+        const bob = S.reduced ? 0 : Math.round(Math.sin(t * 1.4));
+        const cw = cloud.width * 2;
+        const ch = cloud.height * 2;
+        rc.imageSmoothingEnabled = false;
+        rc.drawImage(cloud, Math.round(geo.x0 - cw / 2 + 2), geo.h - ch - 1 + bob, cw, ch);
+        if (reveal >= 1) rc.drawImage(cloud, Math.round(geo.x1 - cw / 2 + 2), geo.h - ch - 1 - bob, cw, ch);
+      }
+    }
+
+    return {
+      tick: tick,
+      hit: function (clientX, clientY) {
+        if (geo.w < 2 || reveal < 1 || S.sy > S.surfaceY) return null;
+        const x = clientX - geo.docLeft;
+        const y = clientY + S.sy - geo.docTop;
+        if (x < geo.x0 - 4 || x > geo.x1 + 4) return null;
+        const top = archY(x);
+        if (y < top - 12 || y > top + BANDS.length * CELL + 12) return null;
+        return function () {
+          waves.push({ x: x, t: 0 });
+          const docX = geo.docLeft + x;
+          const docY = geo.docTop + top + 10;
+          BANDS.forEach(function (hex, i) {
+            const n = parseInt(hex.slice(1), 16);
+            sparks(docX, docY, 3, (n >> 16) + ", " + ((n >> 8) & 255) + ", " + (n & 255));
+            void i;
+          });
+          const target = arcade.powerTarget();
+          if (target) {
+            addFx({
+              k: "orb", x: docX, y: docY, x0: docX, y0: docY, x1: target.x, y1: target.y,
+              life: 1.1, max: 1.1, idx: target.idx,
+              done: function () { arcade.setPower(target.idx); }
+            });
+          }
+        };
+      }
     };
+  })();
+
+  /* ---------- weather: live Hong Kong conditions from Open-Meteo (no key, no visitor data) ---------- */
+
+  const weather = (function () {
+    const URL = "https://api.open-meteo.com/v1/forecast?latitude=22.3027&longitude=114.1772&current=temperature_2m,weather_code,is_day,cloud_cover&timezone=Asia%2FHong_Kong";
+    const CACHE = "hk-weather-v1";
+    const tag = document.getElementById("weather-tag");
+    const icon = document.getElementById("weather-icon");
+    const text = document.getElementById("weather-text");
+    const CODE_TEXT = {
+      0: "clear", 1: "mainly clear", 2: "partly cloudy", 3: "overcast", 45: "fog", 48: "fog",
+      51: "light drizzle", 53: "drizzle", 55: "heavy drizzle", 56: "freezing drizzle", 57: "freezing drizzle",
+      61: "light rain", 63: "rain", 65: "heavy rain", 66: "freezing rain", 67: "freezing rain",
+      71: "light snow", 73: "snow", 75: "heavy snow", 77: "snow grains",
+      80: "showers", 81: "showers", 82: "heavy showers", 85: "snow showers", 86: "snow showers",
+      95: "thunderstorm", 96: "thunderstorm and hail", 99: "thunderstorm and hail"
+    };
+    const ICONS = {
+      sunny: ["....o....", ".o..o..o.", "..ooooo..", "..ooooo..", "ooooooooo", "..ooooo..", "..ooooo..", ".o..o..o.", "....o...."],
+      partly: ["......o..", "....ooooo", "..AAAooo.", ".AAAAAAoo", "AAAAAAAA.", "AAAAAAAA.", ".AAAAAA..", ".........", "........."],
+      sunshower: ["..o.o.o..", "...ooo...", ".ooooooo.", "...ooo...", "..o.o.o..", ".........", ".u..u..u.", "u..u..u..", "........."],
+      overcast: [".........", "...AAA...", "..AAAAA..", ".AAAAAAAA", "AAAAAAAAA", "AAAAAAAAA", ".AAAAAAA.", ".........", "........."],
+      rain: ["...AAA...", "..AAAAA..", ".AAAAAAAA", "AAAAAAAAA", ".AAAAAAA.", ".........", ".u..u..u.", "u..u..u..", "........."],
+      storm: ["...AAA...", "..AAAAA..", ".AAAAAAAA", "AAAAAAAAA", ".AAAoAAA.", "....oo...", "...oo....", "....o....", "........."],
+      fog: [".........", "AAAAAAA..", ".........", "..AAAAAAA", ".........", "AAAAAAA..", ".........", "..AAAAAAA", "........."],
+      night: ["...yyy...", "..yy.....", ".yy......", ".yy......", ".yy......", ".yy......", "..yy.....", "...yyy...", "........."]
+    };
+    const PREVIEW = ["sunny", "sunshower", "overcast", "rain", "storm", "fog", "night"];
+    let live = null;
+    let preview = -1;
+
+    function kindFor(code, isDay, cloud) {
+      if (code >= 95) return "storm";
+      const wet = (code >= 51 && code <= 67) || (code >= 71 && code <= 77) || (code >= 80 && code <= 86);
+      if (wet) return isDay && cloud < 85 ? "sunshower" : "rain";
+      if (code === 45 || code === 48) return "fog";
+      if (!isDay) return "night";
+      if (code === 3 || cloud >= 85) return "overcast";
+      if (code === 2) return "partly";
+      return "sunny";
+    }
+
+    function apply(kind, info) {
+      const next = Object.assign({ kind: kind, live: !!(info && info.live), temp: info ? info.temp : null, text: info ? info.text : "" }, WEATHER_KINDS[kind]);
+      if (kind === "night" && info && info.cloud >= 85) next.alpha = 0.45;
+      const skyChanged = (S.weather.sky || null) !== (next.sky || null);
+      S.weather = next;
+      if (skyChanged) paintBackdrop();
+      render();
+    }
+
+    function render() {
+      if (!tag) return;
+      const W = S.weather;
+      paint(icon, ICONS[W.kind] || ICONS.partly);
+      if (preview >= 0) {
+        text.textContent = "Preview · " + W.label;
+        tag.title = "Previewing " + W.label + ". Click to keep cycling, back to live Hong Kong weather at the end.";
+      } else if (W.live) {
+        text.textContent = "Hong Kong · " + Math.round(W.temp) + "° · " + W.text;
+        tag.title = "Live weather in Hong Kong (Open-Meteo). Click to preview other weather.";
+      } else {
+        text.textContent = "Hong Kong · " + W.label;
+        tag.title = "Hong Kong weather. Click to preview other weather.";
+      }
+      tag.setAttribute("aria-label", text.textContent + ". Click to preview other weather on the rainbow.");
+    }
+
+    function useLive() {
+      if (live) apply(live.kind, live);
+      else apply(S.part === "night" ? "night" : "partly", null);
+    }
+
+    function read(data) {
+      const c = data && data.current;
+      if (!c || typeof c.weather_code !== "number") return null;
+      const isDay = c.is_day === 1;
+      return {
+        live: true, temp: c.temperature_2m, cloud: c.cloud_cover || 0,
+        text: CODE_TEXT[c.weather_code] || "fair", kind: kindFor(c.weather_code, isDay, c.cloud_cover || 0)
+      };
+    }
+
+    async function load() {
+      try {
+        const cached = JSON.parse(sessionStorage.getItem(CACHE) || "null");
+        if (cached && Date.now() - cached.at < 20 * 60 * 1000) {
+          live = read(cached.data);
+          if (live && preview < 0) useLive();
+          return;
+        }
+      } catch (err) { /* storage unavailable */ }
+      const ctrl = new AbortController();
+      const timer = setTimeout(function () { ctrl.abort(); }, 8000);
+      try {
+        const res = await fetch(URL, { signal: ctrl.signal });
+        if (!res.ok) throw new Error("status " + res.status);
+        const data = await res.json();
+        live = read(data) || live;
+        try { sessionStorage.setItem(CACHE, JSON.stringify({ at: Date.now(), data: data })); } catch (err) { /* ignore */ }
+      } catch (err) {
+        /* keep whatever we had; the page still works without live weather */
+      } finally {
+        clearTimeout(timer);
+      }
+      if (preview < 0) useLive();
+    }
+
+    if (tag) {
+      tag.addEventListener("click", function () {
+        preview += 1;
+        if (preview >= PREVIEW.length) {
+          preview = -1;
+          useLive();
+        } else {
+          apply(PREVIEW[preview], null);
+        }
+        const r = tag.getBoundingClientRect();
+        sparks(r.left + 12, r.top + S.sy + r.height / 2, 8, S.weather.bow === "normal" ? "242, 201, 76" : "201, 207, 230");
+      });
+    }
+
+    useLive();
+    load();
+    setInterval(function () { if (document.visibilityState === "visible") load(); }, 30 * 60 * 1000);
+    return { reload: load };
   })();
 
   /* ---------- greeting, clock, nav, gauge, vision ---------- */
@@ -4406,7 +5028,7 @@
       drawOcean(dt);
       photoBubbles.tick(dt);
       arcade.tick(dt, now);
-      rainbow.tick(now);
+      rainbow.tick(dt, now);
       critters.forEach(function (c) {
         updateCritter(c, dt);
         renderCritter(c, now);
