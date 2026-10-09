@@ -23,6 +23,7 @@
     "Education: PhD in CSE at HKUST, 2024–present; MSc in Information Technology at HKUST, 2023–2024; BEng in Telecommunications at Huazhong University of Science and Technology, 2019–2023. His undergraduate innovation program was with Prof. Xiaojun Hei, and his final-year project was with Prof. Xinggang Wang.",
     "Papers: MaskGuide (RA-L 2026); ORCA (WACV 2026, oral); MarineInst (ECCV 2024, oral, and an Oral Presentation Award); an arXiv 2024 case study on GPT-4V for marine analysis.",
     "Teaching assistant at HKUST for COMP 2211 Exploring Artificial Intelligence (Spring 2025 and Fall 2025) and MSBD 6000Q Vision Language Models for Vision Tasks (Fall 2025). Outstanding PG Teaching Assistant Honorable Mention, 2025–26.",
+    "Recognized as a Top Reviewer at NeurIPS 2026.",
     "Visiting student at UESTC, Chengdu, August–November 2026.",
     "Public email: jackson.chen.yiwei@gmail.com and ychenmb@connect.ust.hk."
   ].join(" ");
@@ -3072,6 +3073,9 @@
     { re: /email|e-mail|contact|reach|collaborat|邮箱|联系|合作/i,
       en: "You can write to him at jackson.chen.yiwei@gmail.com or ychenmb@connect.ust.hk.",
       zh: "可以写信给他：jackson.chen.yiwei@gmail.com 或 ychenmb@connect.ust.hk。" },
+    { re: /award|honou?r|prize|reviewer|neurips|获奖|奖|荣誉|审稿/i,
+      en: "He was recognized as a Top Reviewer at NeurIPS 2026, and received an Outstanding PG Teaching Assistant Honorable Mention at HKUST for 2025–26.",
+      zh: "他获评 NeurIPS 2026 Top Reviewer（优秀审稿人），并获得港科大 2025–26 优秀研究生助教提名奖。" },
     { re: /teach|\bta\b|comp ?2211|msbd|助教|教学/i,
       en: "He TAs COMP 2211 Exploring AI and MSBD 6000Q Vision Language Models at HKUST, and received an Outstanding PG TA Honorable Mention for 2025–26.",
       zh: "他在港科大担任 COMP 2211 和 MSBD 6000Q 的助教，获得 2025–26 优秀研究生助教提名奖。" },
