@@ -6,6 +6,21 @@
   <title>MarineChat</title>
   <meta name="description" content="MarineChat — segment, describe and learn about marine life with MarineInst and vision-language models. Built for students and marine researchers.">
   <meta name="theme-color" content="#020814">
+  <!-- link previews (Slack, WeChat, X, LinkedIn ...) -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="MarineChat">
+  <meta property="og:title" content="MarineChat · find, describe and learn about marine life">
+  <meta property="og:description" content="Upload an underwater photo: MarineInst outlines every creature, a vision-language model describes it, and you can check, fix and learn about each species. For students and marine researchers.">
+  <meta property="og:image" content="https://yiweichen.org/marinechat/img/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="MarineChat outlining a sea slug in an underwater photo">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="MarineChat · find, describe and learn about marine life">
+  <meta name="twitter:description" content="Outline every creature in an underwater photo, describe it and learn about the species. For students and marine researchers.">
+  <meta name="twitter:image" content="https://yiweichen.org/marinechat/img/og.jpg">
+  <meta property="og:url" content="https://yiweichen.org/marinechat/">
+  <link rel="canonical" href="https://yiweichen.org/marinechat/">
   <!-- backend API base URL; leave empty when this page is served by the MarineChat server itself -->
   <meta name="marinechat-api" content="https://yiwei-super-pc.tailc620b0.ts.net">
   <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
@@ -13,7 +28,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
-  <script>try{var t=JSON.parse(localStorage.getItem('mc.theme'));if(!t)t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.dataset.theme=t;document.documentElement.dataset.deep=Math.random()<.5?'a':'b';}catch(e){document.documentElement.dataset.theme='dark';}</script>
+  <script>try{var h=new Date().getHours(),a=h>=5&&h<12?'light':h>=12&&h<18?'ocean':'dark',m=JSON.parse(localStorage.getItem('mc.themeMode')||'"auto"'),q=new URLSearchParams(location.search).get('theme'),ok=function(x){return x==='dark'||x==='light'||x==='ocean'};document.documentElement.dataset.theme=ok(q)?q:ok(m)?m:a;document.documentElement.dataset.deep=Math.random()<.5?'a':'b';}catch(e){document.documentElement.dataset.theme='dark';}</script>
 </head>
 <body data-route="home">
   <div id="bgPhoto" aria-hidden="true"><i></i></div>
@@ -29,11 +44,13 @@
     <nav class="nav-links" id="navLinks">
       <a href="#/" data-nav="home">Home</a>
       <a href="#/explore" data-nav="explore">Explore</a>
+      <a href="#/annotate" data-nav="annotate">Annotate</a>
       <a href="#/contribute" data-nav="contribute">Contribute</a>
       <a href="#/about" data-nav="about">About</a>
     </nav>
     <div class="nav-right">
       <div class="theme-switch" id="themeSwitch" role="radiogroup" aria-label="Colour theme">
+        <button role="radio" data-theme="auto" title="Auto: follows your clock" aria-label="Automatic theme by time of day"><svg><use href="#i-clock"/></svg></button>
         <button role="radio" data-theme="dark" title="Deep sea (dark)" aria-label="Deep sea theme"><svg><use href="#i-moon"/></svg></button>
         <button role="radio" data-theme="light" title="Maritime (light)" aria-label="Maritime theme"><svg><use href="#i-sun"/></svg></button>
         <button role="radio" data-theme="ocean" title="Sunlit reef (vivid)" aria-label="Sunlit reef theme"><svg><use href="#i-reef"/></svg></button>
@@ -205,6 +222,7 @@
           <div class="edit-bar glass" id="editBar" hidden>
             <div class="eb-tools" role="toolbar" aria-label="Mask editing tools">
               <button class="tool on" data-etool="smart" title="Smart click (S): left = add region, right = remove region"><svg><use href="#i-wand"/></svg><span>Smart</span></button>
+              <button class="tool touch-only" data-etool="smartneg" title="Cut: tap a region to remove it"><svg><use href="#i-x"/></svg><span>Cut</span></button>
               <button class="tool" data-etool="brush" title="Brush (B): paint to add"><svg><use href="#i-brush"/></svg><span>Brush</span></button>
               <button class="tool" data-etool="erase" title="Eraser (E): paint to remove"><svg><use href="#i-eraser"/></svg><span>Erase</span></button>
               <label class="eb-size" title="Brush size ([ and ])"><span>Size</span><input type="range" id="brushSize" min="2" max="120" value="18"></label>
@@ -338,6 +356,10 @@
     </section>
   </main>
 
+  <!-- ===================================================== ANNOTATE (built by annotate.js) / SPECIES MEDIA (media.js) -->
+  <main class="view page an-page" id="view-annotate" hidden></main>
+  <main class="view page" id="view-media" hidden></main>
+
   <!-- ===================================================== ABOUT -->
   <main class="view page" id="view-about" hidden>
     <section class="page-inner prose">
@@ -413,6 +435,7 @@
     <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
     <symbol id="i-wave" viewBox="0 0 24 24"><path d="M2 9c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2M2 15c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/></symbol>
     <symbol id="i-expand" viewBox="0 0 24 24"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>

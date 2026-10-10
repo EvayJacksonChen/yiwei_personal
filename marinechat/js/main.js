@@ -3,8 +3,13 @@ import { Stage } from './stage.js';
 import { $, $$, h, icon, api, streamText, md, parseCaption, toast, burst, countUp, store, API_BASE } from './util.js';
 import { initContribute } from './contribute.js';
 import { initSpecies, openForInstance } from './species.js';
-import { feedbackBar } from './feedback.js';
+import { hoverCard, infoCard } from './hovercard.js';
+import { feedbackBar, verdictOf } from './feedback.js';
+import { profile } from './profile.js';
+import { renderAnnotate, leaveAnnotate } from './annotate.js';
+import { renderMedia } from './media.js';
 
+window.MC_MODEL = () => S.model;   // the chosen model, for pages outside the Explore view
 const S = {
   cfg: null, status: {}, mode: 'learn', model: null, image: null, inst: [], byId: new Map(), sel: [],
   captions: new Map(), review: new Map(), messages: [], busy: false, segBusy: false,
@@ -44,12 +49,16 @@ const stage = new Stage($('#stageCanvas'), {
   pollStatus();
   initContribute((stats) => renderStats(stats));
   initSpecies({
-    image: () => S.image, mode: () => S.mode, contributor: () => contributor(), instNo: (r) => instNo(r),
+    image: () => S.image, mode: () => S.mode, model: () => S.model, contributor: () => contributor(), instNo: (r) => instNo(r),
     modelLabel: (id) => MODEL(id).label, review: (id) => S.review.get(id),
     onSpeciesPicked: (r, name, confirmed) => {
       S.review.set(r.id, { ...(S.review.get(r.id) || {}), species: name, species_confirmed: confirmed });
       renderInstCard(r); renderChips(); renderReview();
       if (!confirmed) toast(`#${instNo(r)} set to ${name}`, 'ok');
+    },
+    onCaptionCorrected: (r, text) => {
+      S.review.set(r.id, { ...(S.review.get(r.id) || {}), correction: text });
+      renderInstCard(r); renderReview();
     },
   });
   route();
@@ -59,15 +68,21 @@ const stage = new Stage($('#stageCanvas'), {
 addEventListener('hashchange', route);
 function route() {
   const [path, q] = (location.hash.slice(1) || '/').split('?');
-  const name = { '/': 'home', '/explore': 'explore', '/contribute': 'contribute', '/about': 'about' }[path] || 'home';
+  const top = path.startsWith('/annotate') ? '/annotate' : path;
+  const name = { '/': 'home', '/explore': 'explore', '/contribute': 'contribute', '/about': 'about', '/annotate': 'annotate', '/media': 'media' }[top] || 'home';
   const params = new URLSearchParams(q || '');
   $$('.view').forEach((v) => { v.hidden = v.id !== `view-${name}`; });
   $$('[data-nav]').forEach((a) => a.classList.toggle('on', a.dataset.nav === name));
   document.body.dataset.route = name;
   document.body.classList.remove('menu');
+  if (name !== 'annotate') leaveAnnotate();
+  if (name === 'annotate') renderAnnotate($('#view-annotate'), path, params);
+  if (name === 'media') renderMedia($('#view-media'), params);
   if (name === 'explore') {
     setMode(params.get('mode') || store.get('mode', 'learn'));
     setDepth(0.5); setCalm(true); requestAnimationFrame(() => { stage.fit(); moveInk(); });
+    const pend = sessionStorage.getItem('mc.pendingImage');      // a photo sent here from an image set
+    if (pend) { sessionStorage.removeItem('mc.pendingImage'); openImage(async () => JSON.parse(pend)); }
   } else if (name === 'home') { setCalm(false); onScroll(); }
   else { setCalm(true); setDepth(name === 'contribute' ? 0.75 : 0.65); }
   scrollTo({ top: 0, behavior: 'instant' });
@@ -108,12 +123,12 @@ function onScroll() {
 // ====================================================================== status
 async function pollStatus() {
   try {
-    S.status = await api('/api/status');
+    S.status = await api('/api/status'); S.statusAt = performance.now();
     const pill = $('#gpuPill'), st = S.status;
     const label = st.active ? MODEL(st.active).label : '';
     pill.dataset.s = st.state;
     pill.querySelector('span').textContent = st.state === 'ready' ? `${label} ready`
-      : st.state === 'loading' ? `Loading ${label}…` : st.state === 'error' ? 'Model error' : 'GPU idle · MarineInst ready';
+      : st.state === 'loading' ? `Loading ${label} · ${loadProgress().text}` : st.state === 'error' ? 'Model error' : 'GPU idle · MarineInst ready';
     pill.title = `Free VRAM ${st.free_vram_gb} GB · ${st.busy} running · ${st.waiting} waiting`;
     $('.mp-dot').dataset.s = st.active === S.model ? st.state : '';
     $$('.mp-item').forEach((b) => { const l = b.querySelector('.live'); if (l) l.textContent = st.active === b.dataset.id && st.state === 'ready' ? '● loaded' : ''; });
@@ -231,7 +246,7 @@ function renderModelMenu() {
   const menu = $('#mpMenu'); menu.innerHTML = '';
   for (const m of S.cfg.models) {
     const b = h('button', { class: `mp-item ${m.id === S.model ? 'on' : ''}`, 'data-id': m.id, role: 'option' },
-      h('b', {}, m.label), badge(m), h('small', {}, `${m.tagline} · ${m.params} · ~${m.vram_gb} GB`), h('span', { class: 'live' }));
+      h('b', {}, m.label), badge(m), h('small', {}, `${m.tagline} · ${m.params} · ~${m.vram_gb} GB · first load ~${m.load_s || 30} s`), h('span', { class: 'live' }));
     b.onclick = () => { pickModel(m.id); $('#modelPicker').classList.remove('open'); };
     menu.append(b);
   }
@@ -246,10 +261,15 @@ $('#mpBtn').onclick = (e) => { e.stopPropagation(); $('#modelPicker').classList.
 document.addEventListener('click', (e) => { if (!e.target.closest('#modelPicker')) $('#modelPicker').classList.remove('open'); if (!e.target.closest('#paramsPop,#toolParams')) $('#paramsPop').hidden = true; });
 
 // ====================================================================== image loading
+const DEMO_ALT = {   // screen-reader names for the bundled demo photos
+  '300433442_e797096db5_b.jpg': 'sea otters floating in a kelp bay', '304298721_59acb776a4_b.jpg': 'sea otters resting on a dock',
+  '5145863905_486d8113a2_b.jpg': 'a camouflaged animal on a sandy seabed', '5160855772_a8bf945853_b.jpg': 'a sea slug on a rocky reef',
+  '5189739663_9d5a7874e1_b.jpg': 'a blue-spotted stingray' };
 function renderGallery() {
   const g = $('#gallery'); g.innerHTML = '';
-  for (const name of S.cfg.demos || []) {
-    const b = h('button', { title: 'Try this example' }, h('img', { src: `demo/${name}`, alt: 'Example underwater image', loading: 'lazy' }));
+  for (const [i, name] of (S.cfg.demos || []).entries()) {
+    const what = DEMO_ALT[name] || `example photo ${i + 1}`;
+    const b = h('button', { title: `Try this example: ${what}`, 'aria-label': `Try this example: ${what}` }, h('img', { src: `demo/${name}`, alt: '', loading: 'lazy' }));
     b.onclick = () => loadDemo(name);
     g.append(b);
   }
@@ -338,6 +358,7 @@ function renderSpInst() {
     const sr = stage.inst.find((q) => q.id === r.id);
     const c = h('button', { class: `chip ${S.sel.includes(r.id) ? 'sel' : ''}`, title: 'Explore this instance' }, sr ? stage.thumb(sr, 26) : '', h('span', { class: 'nm' }, `#${instNo(r)} ${instName(r)}`));
     c.onclick = () => { setSelection([r.id]); openSpeciesFor(r, true); };
+    instHover(c, r, sr);
     box.append(c);
   });
 }
@@ -356,15 +377,31 @@ function renderChips() {
     chip.onclick = (e) => setSelection(e.shiftKey ? toggle(S.sel, r.id) : (S.sel.length === 1 && S.sel[0] === r.id ? [] : [r.id]));
     chip.onmouseenter = () => { stage.hover = r.id; stage.dirty = true; };
     chip.onmouseleave = () => { stage.hover = null; stage.dirty = true; };
+    instHover(chip, r, sr);
     box.append(chip);
   });
 }
+/** Hover preview for an instance chip: larger crop, the model's label and description, review state. */
+function instHover(el, r, sr) {
+  hoverCard(el, () => {
+    const c = (S.captions.get(r.id) || []).find((x) => !x.error && x.text), q = c?.parsed || {}, rv = S.review.get(r.id) || {};
+    let img = null;
+    try { img = sr ? stage.thumb(sr, 200).toDataURL('image/jpeg', 0.85) : null; } catch { img = null; }
+    const desc = rv.correction || q.desc || c?.text || '';
+    return infoCard({ img, wide: true, title: `#${instNo(r)} ${instName(r)}`, lines: [
+      q.sci ? h('p', {}, h('i', {}, q.sci), q.conf ? ` · ${q.conf} confidence` : '') : '',
+      desc ? `${desc.slice(0, 180)}${desc.length > 180 ? '…' : ''}` : 'Not described yet.',
+      [`${(100 * r.area / (S.image.width * S.image.height)).toFixed(1)}% of image`, rv.species ? `species set to ${rv.species}` : '',
+        rv.mask ? `mask marked ${rv.mask}` : '', rv.correction ? 'description corrected' : ''].filter(Boolean).join(' · ')] });
+  });
+}
+
 const toggle = (arr, id) => (arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id]);
 
 function setSelection(ids, fromUi = true) {
   S.sel = ids; if (fromUi) stage.select(ids);
   renderChips(); updateCtx();
-  $$('.icard').forEach((c) => c.classList.toggle('sel', S.sel.includes(+c.dataset.id)));
+  $$('.icard').forEach((c) => { const on = S.sel.includes(+c.dataset.id); c.classList.toggle('sel', on); c.setAttribute('aria-pressed', on); });
   const card = $(`.icard[data-id="${ids[ids.length - 1]}"]`);
   if (card && $('.tab.on')?.dataset.tab === 'inst') card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   renderSuggests();
@@ -454,11 +491,14 @@ async function caption(r, model = S.model) {
   list.unshift(entry); S.captions.set(r.id, list);
   renderInstCard(r);
   S.capBusy = true;
+  const tick = setInterval(() => { if (!entry.text && S.status.state === 'loading') renderInstCard(r); }, 1000);
+  entry.abort.signal.addEventListener('abort', () => clearInterval(tick));
   try {
     await streamText('/api/caption', { image_id: S.image.image_id, instance_id: r.id, model }, (t) => {
       entry.text = t; entry.parsed = model === 'marinegpt' ? null : parseCaption(t); throttleCard(r);
     }, entry.abort.signal);
   } catch (e) { entry.error = e.message; }
+  clearInterval(tick);
   entry.pending = false; S.capBusy = false;
   if (entry.abort.signal.aborted) {
     entry.stopped = true;
@@ -529,28 +569,46 @@ function renderInstCard(r) {
     if (e.target.closest('button, a, input, textarea, select, .fb-box, .fix')) return;
     setSelection(e.shiftKey ? toggle(S.sel, r.id) : (S.sel.length === 1 && S.sel[0] === r.id ? [] : [r.id]));
   };
+  card.tabIndex = 0; card.setAttribute('aria-pressed', S.sel.includes(r.id));          // keyboard: Tab to a card, Enter/Space selects
+  card.onkeydown = (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === card) { e.preventDefault(); card.onclick(e); } };
   card.onmouseenter = () => { if (!stage.edit) { stage.hover = r.id; stage.dirty = true; } };
   card.onmouseleave = () => { if (!stage.edit) { stage.hover = null; stage.dirty = true; } };
   const th = sr ? stage.thumb(sr, 64) : h('div');
   th.onclick = () => setSelection([r.id]);
+  const pick = capPick(r);
+  const done = caps.filter((c) => !c.pending && c.text && !c.error);
+  const choosing = done.length >= 2 || done.some((c) => c.edited);
   const capEls = caps.map((c) => {
-    const p = c.parsed;
-    const body = c.error ? h('div', { class: 'err' }, c.error)
-      : !c.text ? h('span', { class: 'thinking' }, h('i'), h('i'), h('i'))
-        : p && p.label ? h('div', {}, h('b', {}, p.label), p.sci && p.sci.toLowerCase() !== 'uncertain' ? h('i', { class: 'muted' }, ` · ${p.sci}`) : '', h('div', {}, p.desc))
-          : h('div', {}, c.text);
+    const shown = c.edited || c.text, p = c.edited ? parseCaption(c.edited) : c.parsed;
     c.key = c.key || `cap:${S.image?.image_id}:${r.id}:${c.model}:${Math.random().toString(36).slice(2, 8)}`;
+    const finished = !c.pending && c.text && !c.error;
+    const isBest = finished && pick.best === c.key;
+    const failing = choosing && finished && pick.best && !isBest && verdictOf(c.key) !== 'correct';
+    let body = c.error ? h('div', { class: 'err' }, c.error)
+      : !c.text ? (S.status.state === 'loading' ? updateLoadingNote(loadingNote()) : h('span', { class: 'thinking' }, h('i'), h('i'), h('i')))
+        : p && p.label ? h('div', {}, h('b', {}, p.label), p.sci && p.sci.toLowerCase() !== 'uncertain' ? h('i', { class: 'muted' }, ` · ${p.sci}`) : '', h('div', {}, p.desc))
+          : h('div', {}, shown);
+    if (pick.editing === c.key) body = capEditor(r, c);
+    const tools = finished && pick.editing !== c.key ? h('span', { class: 'cap-tools' },
+      h('button', { class: `ib ${isBest ? 'on-best' : ''}`, type: 'button', title: isBest ? 'This is the best caption' : 'Choose this as the best caption',
+        onclick: () => { pick.best = isBest ? null : c.key; pick.saved = false; renderInstCard(r); } }, '★', isBest ? 'Best' : 'Best?'),
+      h('button', { class: 'ib', type: 'button', title: 'Edit this caption', onclick: () => { pick.editing = c.key; renderInstCard(r); } }, icon('edit'), 'Edit')) : '';
     const fbk = !c.pending && c.text && !c.error ? feedbackBar({
-      key: c.key, compact: true, question: 'Caption right?',
-      onVerdict: (v) => { S.review.set(r.id, { ...(S.review.get(r.id) || {}), caption: v }); renderReview(); },
+      key: c.key, compact: true, question: choosing ? 'Acceptable?' : 'Caption right?',
+      onVerdict: (v) => { S.review.set(r.id, { ...(S.review.get(r.id) || {}), caption: v }); renderReview(); if (choosing) renderInstCard(r); },
       payload: () => ({ target: 'caption', image_id: S.image.image_id, instance_id: r.id, model: c.model, original: c.text,
         role: S.mode, contributor: contributor(), context: { prompt: 'instance caption', label: p?.label || '', sci: p?.sci || '' } }),
     }) : '';
-    return h('div', { class: `cap-item ${c.model === 'marinegpt' ? 'mg' : ''}` },
+    return h('div', { class: `cap-item ${c.model === 'marinegpt' ? 'mg' : ''} ${isBest ? 'best' : ''} ${failing ? 'fail' : ''}` },
       h('div', { class: 'cm' }, MODEL(c.model).label, p?.conf ? h('span', { class: 'muted' }, `· ${p.conf} confidence`) : '',
+        c.edited ? h('span', { class: 'origin user', title: `Original: ${c.text}` }, 'edited') : '',
         c.stopped ? h('span', { class: 'muted' }, '· stopped') : '',
-        c.pending ? h('button', { class: 'ib stop-ib', title: 'Stop this caption', onclick: () => stopCaption(c) }, icon('stop'), 'Stop') : ''), body, fbk);
+        c.pending ? h('button', { class: 'ib stop-ib', title: 'Stop this caption', onclick: () => stopCaption(c) }, icon('stop'), 'Stop') : '', tools),
+      body, failing ? h('div', { class: 'fail-note' }, 'Will be saved as a failure case unless you tick ✓') : '', fbk);
   });
+  const capFoot = choosing ? h('div', { class: 'cap-choose' },
+    h('span', { class: 'fine' }, pick.saved ? 'Choice saved. Thank you!' : pick.best ? 'Tick ✓ any other caption that is also acceptable, then save.' : 'Several captions: choose the best one (★), edit it if needed.'),
+    h('button', { class: 'btn btn-xs btn-glow', type: 'button', disabled: !pick.best || pick.saved, onclick: () => saveCapChoice(r) }, icon('check'), 'Save choice')) : '';
   const maskWrong = S.review.get(r.id)?.mask === 'wrong';
   const acts = h('div', { class: 'acts' },
     h('button', { class: 'ib', onclick: () => caption(r), disabled: caps[0]?.pending }, icon('spark'), caps.length ? 'Describe again' : 'Describe'),
@@ -568,7 +626,54 @@ function renderInstCard(r) {
         h('div', { class: 'scores' }, h('span', {}, `${area}% of image`)),
       S.review.get(r.id)?.species ? h('div', { class: 'scores' }, h('span', { style: 'color:var(--ok)' }, `✎ ${S.review.get(r.id).species}`)) : '',
       r.edited ? h('div', { class: 'scores' }, h('span', { class: 'origin user' }, 'mask refined')) : ''),
-    caps.length ? h('div', { class: 'cap' }, capEls) : '', acts);
+    caps.length ? h('div', { class: 'cap' }, capEls, capFoot) : '', acts);
+}
+
+// ---- choosing the best caption: one best (optionally edited), ✓ = also acceptable, the rest are failure cases
+const capPicks = new Map();
+function capPick(r) {
+  const k = `${S.image?.image_id}:${r.id}`;
+  if (!capPicks.has(k)) capPicks.set(k, { best: null, editing: null, saved: false });
+  return capPicks.get(k);
+}
+function capEditor(r, c) {
+  const pick = capPick(r);
+  const ta = h('textarea', { rows: 5, maxlength: 4000, 'aria-label': 'Edit caption' }); ta.value = c.edited || c.text;
+  ta.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Escape') cancel.click(); if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) save.click(); });
+  const save = h('button', { class: 'btn btn-xs btn-glow', type: 'button' }, icon('check'), 'Use my edit');
+  const cancel = h('button', { class: 'btn btn-xs btn-ghost', type: 'button' }, 'Cancel');
+  save.onclick = () => {
+    const v = ta.value.trim();
+    c.edited = v && v !== c.text ? v : null;
+    pick.editing = null; pick.saved = false;
+    if (c.edited) pick.best = c.key;                         // the edited caption becomes the chosen one
+    renderInstCard(r);
+    if (c.edited && (S.captions.get(r.id) || []).filter((x) => !x.pending && x.text && !x.error).length < 2) saveCapChoice(r);
+  };
+  cancel.onclick = () => { pick.editing = null; renderInstCard(r); };
+  requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); });
+  return h('div', { class: 'cap-edit' }, ta, h('div', { class: 'row gap' }, h('span', { class: 'fine' }, 'Keep the Label / Scientific name / Description lines if you can.'), cancel, save));
+}
+async function saveCapChoice(r) {
+  const pick = capPick(r), caps = (S.captions.get(r.id) || []).filter((x) => !x.pending && x.text && !x.error);
+  const best = caps.find((c) => c.key === pick.best) || (caps.length === 1 ? caps[0] : null);
+  if (!best) return;
+  const final = best.edited || best.text;
+  const others = caps.filter((c) => c !== best);
+  const brief = (c) => ({ model: c.model, text: c.text.slice(0, 700) });
+  const accepted = others.filter((c) => verdictOf(c.key) === 'correct').map(brief), rejected = others.filter((c) => verdictOf(c.key) !== 'correct').map(brief);
+  try {
+    await api('/api/feedback', { body: { target: 'caption', verdict: best.edited ? 'corrected' : 'preferred', image_id: S.image.image_id, instance_id: r.id,
+      model: best.model, original: best.text, correction: best.edited || '', role: S.mode, contributor: contributor(),
+      context: { prompt: 'instance caption', choice: 'best of ' + caps.length, best_model: best.model, best_text: final.slice(0, 3000),
+        accepted: JSON.stringify(accepted.slice(0, 5)), rejected: JSON.stringify(rejected.slice(0, 5)) } } });
+    const pp = parseCaption(final);
+    S.review.set(r.id, { ...(S.review.get(r.id) || {}), caption: best.edited ? 'corrected' : 'correct', correction: best.edited ? (pp.desc || final) : (S.review.get(r.id)?.correction || ''),
+      best_model: best.model, ...(pp.sci && !S.review.get(r.id)?.species && pp.sci.toLowerCase() !== 'uncertain' && best.edited ? { species: pp.sci } : {}) });
+    pick.saved = true;
+    toast(rejected.length ? `Saved: 1 best${accepted.length ? `, ${accepted.length} acceptable` : ''}, ${rejected.length} failure case${rejected.length > 1 ? 's' : ''}` : 'Caption saved. Thank you!', 'ok');
+    renderInstCard(r); renderReview(); renderChips();
+  } catch (e) { toast(e.message, 'err'); }
 }
 
 function openFix(r, card) {
@@ -656,8 +761,8 @@ async function send(text, { quiz = false } = {}) {
   const watch = setInterval(() => {
     if (!bot.text && S.status.state === 'loading') {
       let n = el.querySelector('.loading-note');
-      if (!n) el.append(n = h('div', { class: 'loading-note' }));
-      n.textContent = `Loading ${MODEL(S.status.active).label} onto the GPU… (first answer takes longer)`;
+      if (!n) el.append(n = loadingNote());
+      updateLoadingNote(n);
     } else if (!bot.text && S.status.waiting > 0 && S.status.active && S.status.active !== S.model) {
       let n = el.querySelector('.loading-note');
       if (!n) el.append(n = h('div', { class: 'loading-note' }));
@@ -722,7 +827,9 @@ function paintBot(el, m, final = false) {
 // ====================================================================== review & export
 function contributor() {
   const c = { name: $('#revName').value.trim(), affiliation: $('#revAff').value.trim(), email: $('#revEmail').value.trim() };
-  store.set('contributor', c); return c;
+  if (c.name || c.affiliation || c.email || !store.get('contributor', null)) store.set('contributor', c);
+  const saved = store.get('contributor', {});
+  return { name: c.name || saved.name || '', affiliation: c.affiliation || saved.affiliation || '', email: c.email || saved.email || '', uid: profile().uid };
 }
 (function restoreContributor() {
   const c = store.get('contributor', {});
@@ -796,10 +903,19 @@ function startMaskEdit(r) {
   if (!sr) return;
   stage.startEdit(sr);
   S.editing = r;
+  // phones: the bar goes under the picture instead of covering half of it
+  const bar = $('#editBar'), st = $('#stage');
+  if (matchMedia('(max-width: 860px)').matches) st.after(bar); else if (bar.parentNode !== st) st.append(bar);
   $('#editBar').hidden = false; $('#stageTools').hidden = true; $('#addBar').hidden = true;
   setEditTool('smart');
 }
-const EDIT_HINT = {
+const TOUCH = matchMedia('(hover: none) and (pointer: coarse)').matches;
+const EDIT_HINT = TOUCH ? {
+  smart: 'Smart tap: tap a part of the creature to add it (MarineInst finds the region). Use Cut to remove one.',
+  smartneg: 'Cut: tap a region to remove it from the mask.',
+  brush: 'Brush: drag to paint the mask.',
+  erase: 'Eraser: drag to remove parts of the mask.',
+} : {
   smart: 'Smart click: left-click adds the region under the cursor, right-click removes it (MarineInst finds the region).',
   brush: 'Brush: drag to paint the mask. Hold right button to erase. [ and ] change the size.',
   erase: 'Eraser: drag to remove parts of the mask. [ and ] change the size.',
@@ -866,21 +982,34 @@ addEventListener('keydown', (e) => {
   else if (k === 'enter') $('#editSave').click();
 });
 
-// ====================================================================== theme switch (dark / light / ocean)
-function applyTheme(t, animate = true) {
+// ====================================================================== theme switch (auto / dark / light / ocean)
+// Auto (the default) follows the visitor's clock: morning Maritime (light), afternoon Sunlit reef, evening and night Deep sea.
+const THEME_NAMES = { light: 'Maritime', ocean: 'Sunlit reef', dark: 'Deep sea' };
+const clockTheme = (d = new Date()) => { const hr = d.getHours(); return hr >= 5 && hr < 12 ? 'light' : hr >= 12 && hr < 18 ? 'ocean' : 'dark'; };
+const urlTheme = new URLSearchParams(location.search).get('theme');
+let themeMode = ['dark', 'light', 'ocean'].includes(urlTheme) ? urlTheme : store.get('themeMode', 'auto');
+function applyTheme(t) {
   if (!['dark', 'light', 'ocean'].includes(t)) t = 'dark';
   document.documentElement.dataset.theme = t;
-  store.set('theme', t);
   setTheme(t);
-  const btns = $$('#themeSwitch button');
-  btns.forEach((b) => b.setAttribute('aria-checked', String(b.dataset.theme === t)));
-  const on = btns.find((b) => b.dataset.theme === t), th = $('.ts-thumb');
+  const btns = $$('#themeSwitch button'), active = themeMode === 'auto' ? 'auto' : t;
+  btns.forEach((b) => { b.setAttribute('aria-checked', String(b.dataset.theme === active)); b.classList.toggle('auto-pick', themeMode === 'auto' && b.dataset.theme === t); });
+  const auto = btns.find((b) => b.dataset.theme === 'auto');
+  if (auto) auto.title = `Auto: follows your clock (now ${THEME_NAMES[t]})`;
+  const on = btns.find((b) => b.dataset.theme === active), th = $('.ts-thumb');
   if (on && on.offsetWidth) { th.style.left = `${on.offsetLeft}px`; th.style.width = `${on.offsetWidth}px`; }
-  else requestAnimationFrame(() => applyTheme(t, animate));
+  else requestAnimationFrame(() => applyTheme(t));
   stage.dirty = true;
 }
-$$('#themeSwitch button').forEach((b) => (b.onclick = () => applyTheme(b.dataset.theme)));
-applyTheme(document.documentElement.dataset.theme || 'dark', false);
+function setThemeMode(m) {
+  themeMode = m;
+  store.set('themeMode', m);
+  applyTheme(m === 'auto' ? clockTheme() : m);
+  if (m === 'auto') toast(`Auto theme: ${THEME_NAMES[clockTheme()]} now, changing with your clock`, '', 2600);
+}
+$$('#themeSwitch button').forEach((b) => (b.onclick = () => setThemeMode(b.dataset.theme)));
+applyTheme(document.documentElement.dataset.theme || clockTheme());
+setInterval(() => { if (themeMode === 'auto' && document.documentElement.dataset.theme !== clockTheme()) applyTheme(clockTheme()); }, 60000);
 
 // ====================================================================== hover spotlight on interactive elements
 const FX = '.glass, .btn, .chip, .icard, .sim, .vid, .ph, .fact-chip, .tool, .sugg, .step, .model-card, .gallery button, .mp-item, .tab, .ib, .sp-sec-head, .cthumbs div';
@@ -901,4 +1030,24 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
       }
     });
   }, { passive: true });
+}
+
+// ====================================================================== model loading progress
+/** Elapsed / expected seconds of the current cold load, extrapolated between status polls. */
+function loadProgress() {
+  const st = S.status || {};
+  const el = (st.loading_s || 0) + (S.statusAt ? (performance.now() - S.statusAt) / 1000 : 0);
+  const exp = st.expected_load_s || MODEL(st.active).load_s || 30;
+  const frac = Math.min(.97, el / exp);
+  const text = el <= exp * 1.15 ? `${Math.round(el)} s of ~${exp} s` : `${Math.round(el)} s, almost there…`;
+  return { el, exp, frac, text };
+}
+function loadingNote() {
+  return h('div', { class: 'loading-note' }, h('span', { class: 'ln-text' }), h('div', { class: 'ln-bar' }, h('i')));
+}
+function updateLoadingNote(n) {
+  const p = loadProgress();
+  n.querySelector('.ln-text').textContent = `Loading ${MODEL(S.status.active).label} onto the GPU · ${p.text}. Only the first answer waits for this.`;
+  n.querySelector('.ln-bar i').style.width = `${(p.frac * 100).toFixed(1)}%`;
+  return n;
 }

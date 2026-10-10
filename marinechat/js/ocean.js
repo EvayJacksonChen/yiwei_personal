@@ -174,7 +174,8 @@ function makeSnow() {
 const DEEP_POS = { a: .45, b: .55 };
 function loadDeepTexture(G) {
   if (!G || G.loading) return;
-  const v = document.documentElement.dataset.deep || 'a', src = `bg/deep-${v}${innerWidth < 900 ? '-m' : ''}.jpg`;
+  const webp = document.createElement('canvas').toDataURL('image/webp').startsWith('data:image/webp');
+  const v = document.documentElement.dataset.deep || 'a', src = `bg/deep-${v}${innerWidth < 900 ? '-m' : ''}.${webp ? 'webp' : 'jpg'}`;
   if (G.tex?.src === src) return;
   G.loading = true;
   const img = new Image();
@@ -198,11 +199,12 @@ export function initOcean() {
   const G = startGL(cgl);
   // the fluid photo needs full resolution; the procedural effects are soft and run at half resolution
   let scale = .5;
-  const glScale = () => (fluid() ? (innerWidth < 900 ? .75 : 1) : .5);
+  const budget = (px) => Math.sqrt(px / (innerWidth * innerHeight));      // scale that keeps a canvas under px pixels
+  const glScale = () => Math.min(fluid() ? (innerWidth < 900 ? .65 : .8) : .5, budget(fluid() ? 1.1e6 : 4.5e5));
   const fluid = () => !!(G && G.tex && state.theme === 'dark' && !state.calm && !reduced && !state.tooSlow);
   const resize = () => {
     W = innerWidth; H = innerHeight;
-    const dpr = Math.min(devicePixelRatio || 1, 2);
+    const dpr = Math.min(devicePixelRatio || 1, 1.5, Math.max(1, budget(2.2e6)));   // soft dots: no need for full 4K
     scale = glScale();
     cgl.width = Math.round(W * scale); cgl.height = Math.round(H * scale);
     csn.width = Math.round(W * dpr); csn.height = Math.round(H * dpr);
@@ -220,16 +222,26 @@ export function initOcean() {
 
   let t0 = performance.now(), last = t0, visible = true;
   document.addEventListener('visibilitychange', () => { visible = !document.hidden; if (visible) requestAnimationFrame(frame); });
+  // the motion is slow, so 30 fps looks the same as the display rate and keeps laptop GPUs cool;
+  // idle (no input for 40 s) -> 15 fps, window in the background -> 4 fps, slow GPU -> 12 fps, reduced motion -> 1 fps
+  const FRAME_MS = 1000 / 30;
+  let lastInput = performance.now();
+  for (const ev of ['pointermove', 'pointerdown', 'keydown', 'wheel', 'scroll', 'touchstart'])
+    addEventListener(ev, () => { lastInput = performance.now(); }, { passive: true, capture: true });
+  const frameMs = (now) => reduced ? 1000 : !document.hasFocus() ? 250 : state.tooSlow ? 1000 / 12
+    : now - lastInput > 40000 ? 1000 / 15 : FRAME_MS;
   function frame(now) {
     if (!visible) return;
-    const rawDt = now - last, dt = Math.min(50, rawDt); last = now; const k = dt / 16.7;
+    if (now - last < frameMs(now) - 2) { requestAnimationFrame(frame); return; }
+    const rawDt = now - last, dt = Math.min(66, rawDt); last = now; const k = dt / 16.7;
     // performance guard: if frames stay slow while the fluid photo runs, fall back to the static one
-    if (document.body.classList.contains('fluid-bg') && rawDt < 1000) {
-      state.slowAvg = (state.slowAvg ?? 16) * .95 + rawDt * .05;
-      if (state.slowAvg > 45 && !state.tooSlow) { state.tooSlow = true; console.info('[MarineChat] fluid background disabled: device too slow'); }
+    if (frameMs(now) === FRAME_MS && rawDt < 1000) {
+      state.slowAvg = (state.slowAvg ?? FRAME_MS) * .95 + rawDt * .05;
+      if (state.slowAvg > 55 && !state.tooSlow) { state.tooSlow = true; console.info('[MarineChat] background animation reduced: device too slow'); }
     }
-    state.depth += (state.target - state.depth) * .05;
-    state.tmx += (state.mx - state.tmx) * .03; state.tmy += (state.my - state.tmy) * .03;  // eased torch
+    const ease = (a) => 1 - Math.pow(1 - a, k);                        // per-60fps-frame easing, frame-rate independent
+    state.depth += (state.target - state.depth) * ease(.05);
+    state.tmx += (state.mx - state.tmx) * ease(.03); state.tmy += (state.my - state.tmy) * ease(.03);  // eased torch
     if (photoEl && !reduced) { photoEl.style.setProperty('--px', `${(.5 - state.tmx) * 14}px`); photoEl.style.setProperty('--py', `${(state.tmy - .5) * 10}px`); }
     const th = THEMES[state.theme] || THEMES.dark;
     const t = reduced ? 0 : (now - t0) / 1000;
@@ -270,7 +282,7 @@ export function initOcean() {
     if (!reduced) drawScene(ctx, t, k, state.tmx * W, (1 - state.tmy) * H);
     for (let i = state.sparks.length - 1; i >= 0; i--) {
       const s = state.sparks[i];
-      s.life -= .009 * k; s.y -= .18 * k; s.x += Math.sin(s.life * 6) * .15;
+      s.life -= .009 * k; s.y -= .18 * k; s.x += Math.sin(s.life * 6) * .15 * k;
       if (s.life <= 0) { state.sparks.splice(i, 1); continue; }
       const g = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 5);
       g.addColorStop(0, `hsla(${s.hue},100%,78%,${s.life * .45})`); g.addColorStop(1, `hsla(${s.hue},100%,60%,0)`);

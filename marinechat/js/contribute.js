@@ -1,5 +1,6 @@
 // Contribute page: multi-image drop, metadata form, consent, upload with progress.
 import { $, h, icon, toast, burst, store, apiUrl } from './util.js';
+import { profile } from './profile.js';
 
 export function initContribute(onStats) {
   const files = [];
@@ -37,7 +38,7 @@ export function initContribute(onStats) {
     const meta = {
       consent: true, role: $('#cRole').value, license: $('#cLicense').value, location: $('#cLoc').value, depth_m: $('#cDepth').value,
       date: $('#cDate').value, habitat: $('#cHabitat').value, species: $('#cSpecies').value, notes: $('#cNotes').value,
-      name: $('#cName').value, affiliation: $('#cAff').value, email: $('#cEmail').value,
+      name: $('#cName').value, affiliation: $('#cAff').value, email: $('#cEmail').value, uid: profile().uid,
     };
     store.set('contributor', { name: meta.name, affiliation: meta.affiliation, email: meta.email });
     const fd = new FormData();

@@ -104,7 +104,7 @@ export class Stage {
 
   click(e, negative) {
     if (!this.img) return;
-    if (this.edit) { if (this.edit.tool === 'smart') this.smartClick(e, e.altKey ? 0 : 1); return; }
+    if (this.edit) { if (this.edit.tool.startsWith('smart')) this.smartClick(e, this.edit.tool === 'smartneg' || e.altKey ? 0 : 1); return; }
     const [x, y] = this.toImg(e);
     if (this.tool === 'add') {
       this.points.push({ x, y, l: negative || e.altKey ? 0 : 1 });
@@ -181,7 +181,7 @@ export class Stage {
   }
   editDown(e) {
     const E = this.edit;
-    if (!E || E.tool === 'smart') return;
+    if (!E || E.tool.startsWith('smart')) return;
     e.preventDefault();
     this.cv.setPointerCapture?.(e.pointerId);
     const [x, y] = this.toImg(e);
@@ -276,7 +276,7 @@ export class Stage {
       ctx.beginPath(); ctx.arc(p.x, p.y, R, 0, 6.283);
       ctx.fillStyle = p.l ? '#4dffa6' : NEG; ctx.fill(); ctx.lineWidth = lw; ctx.strokeStyle = '#02131f'; ctx.stroke();
     }
-    if (E.cursor && E.tool !== 'smart') {
+    if (E.cursor && !E.tool.startsWith('smart')) {
       ctx.beginPath(); ctx.arc(E.cursor[0], E.cursor[1], this.brushPx() / 2, 0, 6.283);
       ctx.lineWidth = lw; ctx.strokeStyle = E.tool === 'erase' ? NEG : '#ffd38a';
       ctx.setLineDash([4 / this.scale, 3 / this.scale]); ctx.stroke(); ctx.setLineDash([]);

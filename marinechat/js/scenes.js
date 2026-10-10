@@ -116,8 +116,6 @@ const seaY = (d) => hzY + (H - hzY) * d;
 const sail = (i = 0) => ({ type: 'sail', d: [.03, .12, .3][i % 3] + rnd(0, .05), x: rnd(W * .05, W * .95),
   v: rnd(.03, .08) * (Math.random() < .5 ? -1 : 1), ph: rnd(0, TAU) });
 const motorboat = () => ({ type: 'motor', d: rnd(.2, .35), x: -60, v: rnd(.5, .8), ph: 0, trail: [] });
-const surfer = (riding) => ({ type: 'surfer', riding, d: riding ? rnd(.62, .78) : rnd(.45, .6), x: riding ? -40 : rnd(W * .55, W * .9),
-  v: riding ? rnd(.7, 1.0) : 0, ph: rnd(0, TAU), spray: [] });
 
 function drawGulls(ctx, e, t, k) {
   e.x += e.v * k;
@@ -180,51 +178,103 @@ function drawMotor(ctx, e, t, k) {
   ctx.fillStyle = '#9fc6e0'; ctx.fillRect(-s * .35, -s * .62, s * .5, s * .22);     // windscreen
   ctx.restore();
 }
+// ---- surfers: proportioned figures (wetsuit, skin tones, tapered limbs), shaped boards, wave + shadow
+const SKIN = ['#e0ac84', '#c68a62', '#9b6a47', '#f1c7a5'], SUIT = ['#151d26', '#1d2b3a', '#2a1f2e'], BOARD = [
+  ['#fdfdfb', '#ff8a3d'], ['#f6f1e4', '#2fb3c9'], ['#ffffff', '#e94f64'], ['#fbf6ea', '#f5c242']];
+const pickOf = (a) => a[Math.floor(Math.random() * a.length)];
+function limb(ctx, pts, w0, w1, col) {         // tapered limb through 3 points (joint in the middle)
+  ctx.strokeStyle = col; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.lineWidth = w0; ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]); ctx.lineTo(pts[1][0], pts[1][1]); ctx.stroke();
+  ctx.lineWidth = w1; ctx.beginPath(); ctx.moveTo(pts[1][0], pts[1][1]); ctx.lineTo(pts[2][0], pts[2][1]); ctx.stroke();
+}
+function board(ctx, s, len, col) {             // shortboard: pointed nose, rounded tail, stringer and fin
+  const L = s * len, T = s * .2;
+  const g = ctx.createLinearGradient(0, -T, 0, T);
+  g.addColorStop(0, col[0]); g.addColorStop(1, col[1]);
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.moveTo(L * .55, 0);
+  ctx.bezierCurveTo(L * .3, -T, -L * .35, -T * 1.05, -L * .48, -T * .2);
+  ctx.quadraticCurveTo(-L * .52, 0, -L * .48, T * .2);
+  ctx.bezierCurveTo(-L * .35, T * 1.05, L * .3, T, L * .55, 0); ctx.fill();
+  ctx.strokeStyle = 'rgba(80,60,40,.45)'; ctx.lineWidth = Math.max(.5, s * .03);
+  ctx.beginPath(); ctx.moveTo(L * .5, 0); ctx.lineTo(-L * .46, 0); ctx.stroke();         // stringer
+  ctx.fillStyle = 'rgba(30,40,50,.7)';
+  ctx.beginPath(); ctx.moveTo(-L * .4, T * .5); ctx.lineTo(-L * .32, T * .5); ctx.lineTo(-L * .42, T * 1.6); ctx.closePath(); ctx.fill();  // fin
+}
+function head(ctx, x, y, r, skin, hair, facing) {
+  ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+  ctx.fillStyle = hair; ctx.beginPath(); ctx.arc(x - facing * r * .15, y - r * .2, r * 1.02, Math.PI * .95, Math.PI * 2.05); ctx.fill();  // hair
+}
+const surfer = (riding) => ({ type: 'surfer', riding, d: riding ? rnd(.62, .78) : rnd(.45, .6), x: riding ? -40 : rnd(W * .55, W * .9),
+  v: riding ? rnd(.7, 1.0) : 0, ph: rnd(0, TAU), spray: [], skin: pickOf(SKIN), suit: pickOf(SUIT), board: pickOf(BOARD),
+  hair: pickOf(['#2a1d15', '#4a3426', '#c9a46a', '#111']), dir: riding ? 1 : (Math.random() < .5 ? 1 : -1),
+  top: pickOf([null, null, '#1f78a8', '#d2483a', '#e8e3d6', '#f2a93b']) });   // rash guard (or plain wetsuit)
+
 function drawSurfer(ctx, e, t, k) {
-  const s = 4 + 18 * e.d, base = seaY(e.d);
+  const s = 6 + 22 * e.d, base = seaY(e.d);
   ctx.save();
   if (e.riding) {
     e.x += e.v * k;
-    if (e.x > W + 60) Object.assign(e, surfer(true));
-    const y = base + Math.sin(e.ph * 1.6) * s * .12;
-    // the breaking wave he is riding: a foam crest + darker face, travelling with him
-    const face = ctx.createLinearGradient(0, y - s, 0, y + s * .8);       // darker, glassy wave face
+    if (e.x > W + 80) Object.assign(e, surfer(true));
+    const y = base + Math.sin(e.ph * 1.6) * s * .1;
+    // wave face + foam crest travelling with the rider
+    const face = ctx.createLinearGradient(0, y - s, 0, y + s * .8);
     face.addColorStop(0, 'rgba(14,62,104,.85)'); face.addColorStop(1, 'rgba(30,90,140,0)');
     ctx.globalAlpha = 1; ctx.fillStyle = face;
     ctx.beginPath(); ctx.moveTo(e.x - s * 9, y + s * .6);
     ctx.quadraticCurveTo(e.x - s * 2, y - s * 1.0, e.x + s * 2.5, y + s * .25); ctx.lineTo(e.x + s * 2.5, y + s * .8); ctx.lineTo(e.x - s * 9, y + s * .8); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.lineWidth = Math.max(1.2, s * .22); ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(e.x - s * 8.5, y + s * .5); ctx.quadraticCurveTo(e.x - s * 2.5, y - s * .85, e.x + s * .4, y + s * .2); ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,.75)';                              // frothy whitewater along the crest
+    ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.lineWidth = Math.max(1.2, s * .2); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(e.x - s * 8.5, y + s * .5); ctx.quadraticCurveTo(e.x - s * 2.5, y - s * .85, e.x + s * .4, y + s * .22); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.75)';
     for (let i = 0; i < 14; i++) {
       const u = i / 13, fx = e.x - s * 8.5 + u * s * 8.9, fy = y + s * .5 - Math.sin(u * Math.PI * .92) * s * .75;
       ctx.beginPath(); ctx.arc(fx + Math.sin(e.ph * 5 + i) * s * .1, fy + Math.cos(e.ph * 4 + i * 1.7) * s * .08, s * (.12 + .1 * Math.abs(Math.sin(i * 2.3 + e.ph * 3))), 0, TAU); ctx.fill();
     }
-    if (Math.random() < .6) e.spray.push({ x: e.x - s * .4, y: y + s * .1, vx: -rnd(.3, 1.2), vy: -rnd(.2, .9), life: 1 });
-    for (let i = e.spray.length - 1; i >= 0; i--) {                // spray from the board
-      const p = e.spray[i]; p.x += p.vx * k; p.y += p.vy * k; p.vy += .03 * k; p.life -= .03 * k;
+    if (Math.random() < .7) e.spray.push({ x: e.x - s * .9, y: y + s * .05, vx: -rnd(.4, 1.4), vy: -rnd(.3, 1.1), life: 1 });
+    for (let i = e.spray.length - 1; i >= 0; i--) {
+      const p = e.spray[i]; p.x += p.vx * k; p.y += p.vy * k; p.vy += .035 * k; p.life -= .028 * k;
       if (p.life <= 0) { e.spray.splice(i, 1); continue; }
-      ctx.globalAlpha = p.life * .8; ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(.6, s * .07), 0, TAU); ctx.fill();
+      ctx.globalAlpha = p.life * .85; ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(.6, s * .06), 0, TAU); ctx.fill();
     }
-    ctx.translate(e.x, y); ctx.rotate(-.12 + Math.sin(e.ph * 1.6) * .05);
-    ctx.globalAlpha = .95;
-    ctx.fillStyle = '#ffb347'; ctx.beginPath(); ctx.ellipse(0, s * .12, s * 1.15, s * .14, 0, 0, TAU); ctx.fill();   // board
-    ctx.strokeStyle = '#1c2a36'; ctx.lineWidth = Math.max(1, s * .16); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.beginPath(); ctx.moveTo(-s * .45, 0); ctx.lineTo(-s * .2, -s * .55); ctx.lineTo(.05 * s, -s * .35); ctx.lineTo(s * .35, 0); ctx.stroke();   // bent legs
-    ctx.beginPath(); ctx.moveTo(-s * .12, -s * .5); ctx.lineTo(-s * .02, -s * 1.15); ctx.stroke();                                              // torso
-    ctx.beginPath(); ctx.moveTo(-s * .7, -s * .95); ctx.lineTo(-s * .05, -s * 1.0); ctx.lineTo(s * .6, -s * .8); ctx.stroke();                 // arms out
-    ctx.fillStyle = '#1c2a36'; ctx.beginPath(); ctx.arc(.02 * s, -s * 1.35, s * .17, 0, TAU); ctx.fill();                                     // head
+    // rider: low stance, knees bent, arms out for balance, slight lean into the turn
+    const lean = -.14 + Math.sin(e.ph * 1.6) * .06, arm = Math.sin(e.ph * 2.2) * .12;
+    ctx.translate(e.x, y); ctx.rotate(lean);
+    ctx.globalAlpha = .28; ctx.fillStyle = '#062033';                                       // shadow on the wave face
+    ctx.beginPath(); ctx.ellipse(-s * .1, s * .32, s * 1.1, s * .1, 0, 0, TAU); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.save(); ctx.translate(0, s * .1); board(ctx, s, 2.4, e.board); ctx.restore();
+    const hip = [-s * .05, -s * .62], sh = [s * .05, -s * 1.22];
+    limb(ctx, [[-s * .55, s * .02], [-s * .5, -s * .38], hip], s * .2, s * .17, e.suit);      // back leg
+    limb(ctx, [[s * .5, s * .02], [s * .32, -s * .4], hip], s * .2, s * .17, e.suit);         // front leg
+    ctx.fillStyle = e.suit;                                                                    // feet
+    ctx.beginPath(); ctx.ellipse(-s * .55, s * .02, s * .1, s * .05, 0, 0, TAU); ctx.ellipse(s * .5, s * .02, s * .1, s * .05, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = e.top || e.suit;                                                           // torso (wetsuit / rash guard)
+    ctx.beginPath(); ctx.moveTo(hip[0] - s * .14, hip[1]); ctx.lineTo(sh[0] - s * .17, sh[1]); ctx.lineTo(sh[0] + s * .17, sh[1] + s * .04); ctx.lineTo(hip[0] + s * .14, hip[1] + s * .02); ctx.closePath(); ctx.fill();
+    limb(ctx, [sh, [-s * .45, -s * (1.05 + arm)], [-s * .85, -s * (.85 + arm)]], s * .12, s * .1, e.suit);   // back arm
+    limb(ctx, [sh, [s * .48, -s * (1.12 - arm)], [s * .92, -s * (1.02 - arm)]], s * .12, s * .1, e.suit);   // front arm
+    ctx.fillStyle = e.skin;
+    ctx.beginPath(); ctx.arc(-s * .87, -s * (.84 + arm), s * .07, 0, TAU); ctx.fill();           // hands
+    ctx.beginPath(); ctx.arc(s * .94, -s * (1.01 - arm), s * .07, 0, TAU); ctx.fill();
+    head(ctx, sh[0] + s * .08, sh[1] - s * .23, s * .15, e.skin, e.hair, 1);
   } else {
-    // a surfer waiting for a set: sitting on the board, bobbing
-    const y = base + Math.sin(e.ph * 1.1) * s * .1;
-    ctx.translate(e.x, y); ctx.rotate(Math.sin(e.ph * 1.1) * .06);
-    ctx.globalAlpha = .4; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.ellipse(0, s * .16, s * (1.4 + .2 * Math.sin(e.ph * 2)), s * .14, 0, 0, TAU); ctx.stroke();                     // ripple ring
-    ctx.globalAlpha = .92; ctx.fillStyle = '#7fd3ff'; ctx.beginPath(); ctx.ellipse(0, s * .1, s * 1.05, s * .12, 0, 0, TAU); ctx.fill();
-    ctx.strokeStyle = '#1c2a36'; ctx.lineWidth = Math.max(1, s * .16); ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(-s * .05, 0); ctx.lineTo(.02 * s, -s * .6); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-s * .05, 0); ctx.lineTo(s * .35, s * .18); ctx.stroke();
-    ctx.fillStyle = '#1c2a36'; ctx.beginPath(); ctx.arc(.04 * s, -s * .8, s * .16, 0, TAU); ctx.fill();
+    // paddling out: lying on the board, arms stroking alternately, gentle bob
+    const y = base + Math.sin(e.ph * 1.1) * s * .08, stroke = e.ph * 2.4;
+    ctx.translate(e.x, y); ctx.scale(e.dir, 1); ctx.rotate(Math.sin(e.ph * 1.1) * .03);
+    ctx.globalAlpha = .5; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1;                      // wake ripples
+    for (let i = 1; i <= 2; i++) { ctx.beginPath(); ctx.ellipse(-s * (.9 + i * .5), s * .18, s * (.3 + i * .25), s * .07, 0, 0, TAU); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+    board(ctx, s, 2.3, e.board);
+    ctx.fillStyle = e.top || e.suit;                                                           // body lying on the board
+    ctx.beginPath(); ctx.ellipse(-s * .1, -s * .16, s * .62, s * .14, 0, 0, TAU); ctx.fill();
+    limb(ctx, [[-s * .6, -s * .14], [-s * 1.0, -s * .12], [-s * 1.3, -s * .05]], s * .15, s * .12, e.suit); // legs trailing
+    for (const [ph0, alpha] of [[0, 1], [Math.PI, .8]]) {                                     // paddling arms
+      const a = stroke + ph0, reach = Math.cos(a), up = Math.max(0, Math.sin(a));
+      ctx.globalAlpha = alpha;
+      limb(ctx, [[s * .35, -s * .2], [s * (.55 + .25 * reach), -s * (.25 + .35 * up)], [s * (.65 + .45 * reach), -s * (.05 + .5 * up) + s * .18]], s * .11, s * .09, e.suit);
+      if (up < .2) { ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.beginPath(); ctx.arc(s * (.65 + .45 * reach), s * .16, s * .07, 0, TAU); ctx.fill(); }   // splash
+    }
+    ctx.globalAlpha = 1;
+    head(ctx, s * .55, -s * .34, s * .14, e.skin, e.hair, 1);
   }
   ctx.restore();
 }
