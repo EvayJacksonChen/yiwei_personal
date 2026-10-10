@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>MarineChat</title>
+  <meta name="description" content="MarineChat — segment, describe and learn about marine life with MarineInst and vision-language models. Built for students and marine researchers.">
+  <meta name="theme-color" content="#020814">
+  <!-- backend API base URL; leave empty when this page is served by the MarineChat server itself -->
+  <meta name="marinechat-api" content="https://yiwei-super-pc.tailc620b0.ts.net">
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <script>try{var t=JSON.parse(localStorage.getItem('mc.theme'));if(!t)t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.dataset.theme=t;document.documentElement.dataset.deep=Math.random()<.5?'a':'b';}catch(e){document.documentElement.dataset.theme='dark';}</script>
+</head>
+<body data-route="home">
+  <div id="bgPhoto" aria-hidden="true"><i></i></div>
+  <canvas id="ocean" aria-hidden="true"></canvas>
+  <canvas id="snow" aria-hidden="true"></canvas>
+
+  <!-- ===================================================== top navigation -->
+  <header class="nav" id="nav">
+    <a class="brand" href="#/" aria-label="MarineChat home">
+      <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><use href="#i-logo"/></svg>
+      <span>Marine<b>Chat</b></span>
+    </a>
+    <nav class="nav-links" id="navLinks">
+      <a href="#/" data-nav="home">Home</a>
+      <a href="#/explore" data-nav="explore">Explore</a>
+      <a href="#/contribute" data-nav="contribute">Contribute</a>
+      <a href="#/about" data-nav="about">About</a>
+    </nav>
+    <div class="nav-right">
+      <div class="theme-switch" id="themeSwitch" role="radiogroup" aria-label="Colour theme">
+        <button role="radio" data-theme="dark" title="Deep sea (dark)" aria-label="Deep sea theme"><svg><use href="#i-moon"/></svg></button>
+        <button role="radio" data-theme="light" title="Maritime (light)" aria-label="Maritime theme"><svg><use href="#i-sun"/></svg></button>
+        <button role="radio" data-theme="ocean" title="Sunlit reef (vivid)" aria-label="Sunlit reef theme"><svg><use href="#i-reef"/></svg></button>
+        <i class="ts-thumb"></i>
+      </div>
+      <div class="gpu-pill" id="gpuPill" title="Server status"><i class="dot"></i><span>connecting…</span></div>
+      <a class="btn btn-glow btn-sm hide-sm" href="#/explore">Launch app</a>
+      <button class="nav-burger" id="burger" aria-label="Menu"><span></span><span></span></button>
+    </div>
+  </header>
+
+  <!-- ===================================================== HOME -->
+  <main class="view" id="view-home">
+    <aside class="depth-gauge" aria-hidden="true">
+      <div class="gauge-track"><div class="gauge-fill" id="gaugeFill"></div></div>
+      <div class="gauge-read"><b id="gaugeDepth">0</b> m</div>
+      <div class="gauge-zone" id="gaugeZone">Sunlight zone</div>
+    </aside>
+
+    <section class="hero zone" data-depth="0" data-zone="Sunlight zone">
+      <div class="hero-copy reveal">
+        <p class="eyebrow"><span class="pulse"></span> MarineInst · ECCV 2024 Oral · now with 2026 VLMs</p>
+        <h1 class="hero-title">Ask the ocean<br><span class="shimmer">anything.</span></h1>
+        <p class="lead">MarineChat finds every creature in your underwater photo, describes each one, and answers your questions about it.
+          It's built for <b>students</b> learning marine science and for <b>researchers</b> who want to check and correct what the AI sees.</p>
+        <div class="cta-row">
+          <a class="btn btn-glow btn-lg" href="#/explore?mode=learn"><svg><use href="#i-spark"/></svg> Start exploring</a>
+          <a class="btn btn-ghost btn-lg" href="#/explore?mode=research"><svg><use href="#i-flask"/></svg> I'm a researcher</a>
+        </div>
+        <div class="stat-row" id="statRow">
+          <div><b data-count="images_analysed">0</b><span>images explored</span></div>
+          <div><b data-count="feedback">0</b><span>expert checks</span></div>
+          <div><b data-count="contributions">0</b><span>images contributed</span></div>
+        </div>
+      </div>
+      <div class="hero-demo reveal" id="heroDemo">
+        <div class="demo-frame loading">
+          <img id="heroImg" class="hero-img" alt="Underwater example scene analysed by MarineInst">
+          <img id="heroImg2" class="hero-img" alt="">
+          <svg id="heroSvg" class="hero-svg"></svg>
+          <div class="sonar"></div>
+          <div class="demo-caption glass" id="heroCaption"><span class="tag">#1</span><span class="txt"></span><i class="caret"></i></div>
+          <div class="hero-dots" id="heroDots"></div>
+        </div>
+        <div class="demo-legend"><span><i class="sw sw-pos"></i>instance mask</span><span><i class="sw sw-sel"></i>selected</span><span class="mono" id="heroModel">MarineInst ViT-H</span></div>
+      </div>
+      <a class="scroll-cue" href="#how" aria-label="Scroll"><span></span></a>
+    </section>
+
+    <section class="zone section" id="how" data-depth="200" data-zone="Twilight zone">
+      <header class="section-head reveal">
+        <p class="eyebrow">How it works</p>
+        <h2>From one photo to a scene full of descriptions</h2>
+        <p class="sub">The pipeline is two-stage, as in the MarineInst paper: instance segmentation with <em>binary instance filtering</em>, then <em>instance captioning</em> with a VLM you choose.</p>
+      </header>
+      <ol class="steps">
+        <li class="step glass reveal"><div class="step-ico"><svg><use href="#i-upload"/></svg></div><h3>1 · Dive in</h3><p>Drop in your own underwater photo or pick one from the gallery. Images you don't choose to share are deleted after 24 hours.</p></li>
+        <li class="step glass reveal"><div class="step-ico"><svg><use href="#i-scan"/></svg></div><h3>2 · Segment</h3><p>MarineInst (SAM ViT-H fine-tuned on MarineInst20M) proposes masks and keeps the true <b>instances</b>, which cuts down on over- and partial segmentation.</p></li>
+        <li class="step glass reveal"><div class="step-ico"><svg><use href="#i-chat"/></svg></div><h3>3 · Describe &amp; ask</h3><p>Click any creature to get its caption from MarineGPT or a 2026-generation VLM, then keep chatting about biology, behaviour and habitat.</p></li>
+        <li class="step glass reveal"><div class="step-ico"><svg><use href="#i-check"/></svg></div><h3>4 · Check &amp; improve</h3><p>Researchers can mark masks and captions as right or wrong, fix the species and add missed instances. Every correction helps train the next MarineInst.</p></li>
+      </ol>
+    </section>
+
+    <section class="zone section" id="audiences" data-depth="650" data-zone="Midnight zone">
+      <div class="split">
+        <article class="audience glass reveal">
+          <div class="aud-badge learn">For students</div>
+          <h3>Learn the ocean, one creature at a time</h3>
+          <ul class="ticks">
+            <li>Explanations pitched for students, with key terms highlighted</li>
+            <li>One-tap questions: <i>What is it? Where does it live? What does it eat?</i></li>
+            <li><b>Quiz me</b> makes a multiple-choice question from the photo itself</li>
+            <li>Honest about uncertainty: when the AI isn't sure, it says so</li>
+          </ul>
+          <a class="btn btn-ghost" href="#/explore?mode=learn">Open learn mode →</a>
+        </article>
+        <article class="audience glass reveal">
+          <div class="aud-badge research">For researchers</div>
+          <h3>Audit, correct and contribute</h3>
+          <ul class="ticks">
+            <li>Inspect instance and non-instance masks, with IoU and stability scores</li>
+            <li>Add missed instances by clicking positive and negative points</li>
+            <li>Rate captions, give the correct taxon and leave notes</li>
+            <li>Export COCO-RLE annotations, or share them with the MarineInst team</li>
+          </ul>
+          <a class="btn btn-ghost" href="#/explore?mode=research">Open research mode →</a>
+        </article>
+      </div>
+    </section>
+
+    <section class="zone section" id="models" data-depth="1800" data-zone="Midnight zone">
+      <header class="section-head reveal">
+        <p class="eyebrow">Plug-in VLMs</p>
+        <h2>Pick your expert</h2>
+        <p class="sub">Choose the domain-specific MarineGPT or a recent general-purpose model. All of them run on a single 24 GB GPU, and only one is loaded at a time.</p>
+      </header>
+      <div class="model-grid" id="modelGrid"></div>
+    </section>
+
+    <section class="zone section" id="community" data-depth="4000" data-zone="Abyssal zone">
+      <div class="community glass reveal">
+        <div>
+          <p class="eyebrow">Citizen science</p>
+          <h2>Help us light up the deep</h2>
+          <p class="sub">Marine data is scarce. Your photos from dives, field surveys or lab work, along with your corrections, go straight into improving MarineInst20M and the models trained on it.</p>
+          <div class="cta-row"><a class="btn btn-glow" href="#/contribute"><svg><use href="#i-upload"/></svg> Contribute images</a>
+            <a class="btn btn-ghost" href="#/about">Data &amp; privacy</a></div>
+        </div>
+        <div class="bio-orb" aria-hidden="true"><i></i><i></i><i></i></div>
+      </div>
+    </section>
+
+    <footer class="footer zone" data-depth="6000" data-zone="Hadal zone">
+      <div>© 2024–2026 MarineInst team · HKUST VGD · for education &amp; research use</div>
+      <div class="foot-links"><a href="https://github.com/zhengziqiang/MarineInst" target="_blank" rel="noopener">GitHub</a><a href="https://marineinst.hkustvgd.com/" target="_blank" rel="noopener">Project page</a><a href="#/about">Cite</a></div>
+    </footer>
+  </main>
+
+  <!-- ===================================================== EXPLORE (the app) -->
+  <main class="view app" id="view-explore" hidden>
+    <div class="app-bar glass">
+      <div class="seg-switch" id="modeSwitch" role="tablist" aria-label="Mode">
+        <button role="tab" data-mode="learn" class="on"><svg><use href="#i-spark"/></svg>Learn</button>
+        <button role="tab" data-mode="research"><svg><use href="#i-flask"/></svg>Research</button>
+        <i class="seg-thumb"></i>
+      </div>
+      <div class="model-picker" id="modelPicker">
+        <button class="mp-btn" id="mpBtn" aria-haspopup="listbox"><span class="mp-dot"></span><span class="mp-name">Model</span><svg class="chev"><use href="#i-chev"/></svg></button>
+        <div class="mp-menu glass" id="mpMenu" role="listbox"></div>
+      </div>
+      <div class="app-bar-spacer"></div>
+      <button class="btn btn-ghost btn-sm" id="newImageBtn"><svg><use href="#i-upload"/></svg><span class="hide-sm">New image</span></button>
+    </div>
+
+    <div class="workspace">
+      <!-- ---------- stage -->
+      <section class="stage-wrap">
+        <div class="stage glass" id="stage">
+          <div class="drop" id="drop">
+            <div class="drop-inner">
+              <div class="drop-ico"><svg><use href="#i-upload"/></svg></div>
+              <h3>Drop an underwater photo</h3>
+              <p>or <label class="link">browse<input type="file" id="fileInput" accept="image/*" hidden></label> · JPG / PNG / WebP · up to <span id="maxMb">15</span> MB</p>
+              <p class="fine">Not shared unless you say so. Uploads are deleted after 24 h.</p>
+              <div class="gallery" id="gallery"></div>
+            </div>
+          </div>
+          <div class="canvas-wrap" id="canvasWrap" hidden>
+            <canvas id="stageCanvas"></canvas>
+            <div class="scan" id="scan" hidden><div class="scan-line"></div><div class="scan-text mono">MarineInst is scanning… <span id="scanTime">0.0</span>s</div></div>
+            <div class="hover-tip glass" id="hoverTip" hidden></div>
+          </div>
+          <div class="stage-tools glass" id="stageTools" hidden>
+            <button class="tool" id="toolSegment" title="Run MarineInst"><svg><use href="#i-scan"/></svg><span>Segment</span></button>
+            <button class="tool" id="toolSelect" data-tool="select" title="Select instances (Shift to multi-select)"><svg><use href="#i-cursor"/></svg></button>
+            <button class="tool research-only" id="toolAdd" data-tool="add" title="Add a missed instance: left-click = include, right-click / Alt-click = exclude"><svg><use href="#i-plus"/></svg></button>
+            <span class="tool-sep"></span>
+            <button class="tool toggle" id="toolMasks" title="Show masks" aria-pressed="true"><svg><use href="#i-layers"/></svg></button>
+            <button class="tool toggle research-only" id="toolNeg" title="Show non-instance masks (filtered out by MarineInst)" aria-pressed="false"><svg><use href="#i-ghost"/></svg></button>
+            <label class="tool-slider" title="Mask opacity"><input type="range" id="opacity" min="0" max="0.9" step="0.05" value="0.38"></label>
+            <button class="tool research-only" id="toolParams" title="Thresholds"><svg><use href="#i-sliders"/></svg></button>
+          </div>
+          <div class="params glass" id="paramsPop" hidden>
+            <label>Predicted IoU ≥ <b id="iouVal">0.82</b><input type="range" id="iouThr" min="0.6" max="0.95" step="0.01" value="0.82"></label>
+            <label>Stability ≥ <b id="staVal">0.82</b><input type="range" id="staThr" min="0.6" max="0.95" step="0.01" value="0.82"></label>
+            <label>Grid points / side <b id="ppsVal">32</b><input type="range" id="pps" min="16" max="48" step="4" value="32"></label>
+            <button class="btn btn-sm btn-glow" id="reSegment">Re-run</button>
+          </div>
+          <div class="edit-bar glass" id="editBar" hidden>
+            <div class="eb-tools" role="toolbar" aria-label="Mask editing tools">
+              <button class="tool on" data-etool="smart" title="Smart click (S): left = add region, right = remove region"><svg><use href="#i-wand"/></svg><span>Smart</span></button>
+              <button class="tool" data-etool="brush" title="Brush (B): paint to add"><svg><use href="#i-brush"/></svg><span>Brush</span></button>
+              <button class="tool" data-etool="erase" title="Eraser (E): paint to remove"><svg><use href="#i-eraser"/></svg><span>Erase</span></button>
+              <label class="eb-size" title="Brush size ([ and ])"><span>Size</span><input type="range" id="brushSize" min="2" max="120" value="18"></label>
+              <span class="tool-sep"></span>
+              <button class="tool" id="editUndo" title="Undo (Ctrl+Z)"><svg><use href="#i-undo"/></svg></button>
+              <button class="tool" id="editRedo" title="Redo (Ctrl+Shift+Z)"><svg style="transform:scaleX(-1)"><use href="#i-undo"/></svg></button>
+              <button class="tool" id="editReset" title="Back to the model's mask">Reset</button>
+            </div>
+            <div class="eb-hint" id="editHint">Smart click: left-click adds the region under the cursor, right-click removes it.</div>
+            <div class="eb-actions">
+              <button class="btn btn-sm btn-ghost" id="editCancel">Cancel</button>
+              <button class="btn btn-sm btn-glow" id="editSave"><svg><use href="#i-check"/></svg>Save mask</button>
+            </div>
+          </div>
+          <div class="add-bar glass" id="addBar" hidden>
+            <span><b>Add instance</b> · left-click to include · right-click to exclude</span>
+            <button class="btn btn-sm btn-ghost" id="addUndo">Undo</button>
+            <button class="btn btn-sm btn-ghost" id="addCancel">Cancel</button>
+            <button class="btn btn-sm btn-glow" id="addCommit" disabled>Add mask</button>
+          </div>
+        </div>
+        <div class="strip" id="strip" hidden>
+          <div class="strip-head"><b id="instCount">0</b> instances <span class="muted" id="segTime"></span>
+            <span class="spacer"></span>
+            <label class="check mini" title="Automatically describe the 5 largest instances"><input type="checkbox" id="autoDescribe" checked> auto-describe</label>
+            <button class="btn btn-sm btn-ghost" id="captionAll"><svg><use href="#i-spark"/></svg>Describe all</button></div>
+          <div class="chips" id="chips"></div>
+        </div>
+      </section>
+
+      <!-- ---------- side panel -->
+      <section class="panel glass" id="panel">
+        <div class="tabs" role="tablist">
+          <button class="tab on" data-tab="chat">Chat</button>
+          <button class="tab" data-tab="inst">Instances <span class="badge" id="instBadge">0</span></button>
+          <button class="tab" data-tab="species">Species</button>
+          <button class="tab research-only" data-tab="review">Review <span class="badge" id="reviewBadge">0</span></button>
+          <i class="tab-ink"></i>
+        </div>
+
+        <div class="tabpane on" data-pane="chat">
+          <div class="ctx" id="ctx"><span class="muted">Talking about</span> <span id="ctxLabel" class="ctx-chip">the whole image</span><button class="link" id="ctxClear" hidden>clear</button></div>
+          <div class="messages" id="messages">
+            <div class="empty-chat" id="emptyChat">
+              <div class="bubble-art" aria-hidden="true"><i></i><i></i><i></i></div>
+              <p>Load an image, tap a creature, then ask away.</p>
+            </div>
+          </div>
+          <div class="suggests" id="suggests"></div>
+          <form class="composer" id="composer">
+            <textarea id="prompt" rows="1" placeholder="Ask about this image…" maxlength="2000"></textarea>
+            <button class="send" id="sendBtn" type="submit" aria-label="Send" title="Send"><svg class="ico-send"><use href="#i-send"/></svg><svg class="ico-stop"><use href="#i-stop"/></svg></button>
+          </form>
+          <p class="disclaimer">AI-generated content can be wrong, especially species IDs. Check important facts with a field guide or <a href="https://www.marinespecies.org" target="_blank" rel="noopener">WoRMS</a>.</p>
+        </div>
+
+        <div class="tabpane" data-pane="inst">
+          <div class="inst-list" id="instList"><p class="muted pad">Run segmentation to see instances.</p></div>
+        </div>
+
+        <div class="tabpane" data-pane="species">
+          <div class="sp-bar">
+            <button class="ib" id="spBack" title="Back" hidden><svg style="transform:rotate(90deg)"><use href="#i-chev"/></svg></button>
+            <div class="sp-searchbox">
+              <input id="spSearch" placeholder="Search any species, e.g. clownfish, Taeniura..." autocomplete="off" aria-label="Search species">
+              <div class="sp-suggest glass" id="spSuggest" hidden></div>
+            </div>
+            <button class="ib" id="spWide" title="Widen panel"><svg><use href="#i-expand"/></svg></button>
+          </div>
+          <div class="sp-inst" id="spInst" hidden></div>
+          <div class="sp-body" id="spBody"></div>
+        </div>
+
+        <div class="tabpane" data-pane="review">
+          <div class="review">
+            <p class="muted">Mark each mask or caption as ✓ or ✗ in the Instances tab (or on the chips), add missed instances, then send your review to the MarineInst team.</p>
+            <div class="review-sum" id="reviewSum"></div>
+            <label class="field"><span>General notes</span><textarea id="reviewNotes" rows="3" placeholder="Anything we should know about this image or the predictions?"></textarea></label>
+            <details class="contrib-details"><summary>Credit me (optional)</summary>
+              <div class="grid2">
+                <label class="field"><span>Name</span><input id="revName" autocomplete="name"></label>
+                <label class="field"><span>Affiliation</span><input id="revAff" autocomplete="organization"></label>
+                <label class="field span2"><span>Email (only used to contact you about your feedback)</span><input id="revEmail" type="email" autocomplete="email"></label>
+              </div>
+            </details>
+            <label class="check"><input type="checkbox" id="revShare"> <span>Allow the MarineInst team to keep this image and my annotations for research and model training.</span></label>
+            <div class="row gap">
+              <button class="btn btn-glow" id="submitReview"><svg><use href="#i-check"/></svg>Submit review</button>
+              <button class="btn btn-ghost" id="exportJson"><svg><use href="#i-download"/></svg>Export JSON</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- ===================================================== CONTRIBUTE -->
+  <main class="view page" id="view-contribute" hidden>
+    <section class="page-inner">
+      <header class="section-head reveal">
+        <p class="eyebrow">Contribute</p>
+        <h2>Share your underwater images</h2>
+        <p class="sub">Photos from dives, ROV/BRUV surveys, aquaria or lab work all help. Metadata such as location, depth and species makes them far more useful to researchers.</p>
+      </header>
+      <form class="contrib glass reveal" id="contribForm">
+        <div class="cdrop" id="cdrop">
+          <input type="file" id="cfiles" accept="image/*" multiple hidden>
+          <div class="cdrop-inner"><svg><use href="#i-upload"/></svg><b>Drop up to 20 images</b><span>or click to browse</span></div>
+          <div class="cthumbs" id="cthumbs"></div>
+        </div>
+        <div class="grid2">
+          <label class="field"><span>I am a…</span>
+            <select id="cRole"><option>Researcher</option><option>Student</option><option>Diver / photographer</option><option>Educator</option><option>Other</option></select></label>
+          <label class="field"><span>License</span>
+            <select id="cLicense"><option value="CC-BY-4.0">CC BY 4.0 (attribution)</option><option value="CC-BY-NC-4.0">CC BY-NC 4.0 (non-commercial)</option><option value="CC0-1.0">CC0 (public domain)</option></select></label>
+          <label class="field"><span>Location / site</span><input id="cLoc" placeholder="e.g. Hoi Ha Wan, Hong Kong"></label>
+          <label class="field"><span>Depth (m)</span><input id="cDepth" inputmode="decimal" placeholder="e.g. 8"></label>
+          <label class="field"><span>Date taken</span><input id="cDate" type="date"></label>
+          <label class="field"><span>Habitat</span>
+            <select id="cHabitat"><option value="">—</option><option>Coral reef</option><option>Rocky reef</option><option>Seagrass / kelp</option><option>Open water</option><option>Deep sea</option><option>Sandy / muddy bottom</option><option>Aquarium</option><option>Other</option></select></label>
+          <label class="field span2"><span>Species present (if known)</span><input id="cSpecies" placeholder="e.g. Amphiprion ocellaris, Heteractis magnifica"></label>
+          <label class="field span2"><span>Camera / notes</span><textarea id="cNotes" rows="2" placeholder="Camera, lighting, survey method, anything else"></textarea></label>
+          <label class="field"><span>Name (for credit, optional)</span><input id="cName" autocomplete="name"></label>
+          <label class="field"><span>Affiliation (optional)</span><input id="cAff" autocomplete="organization"></label>
+          <label class="field span2"><span>Email (optional, only used to contact you)</span><input id="cEmail" type="email" autocomplete="email"></label>
+        </div>
+        <label class="check"><input type="checkbox" id="cConsent" required> <span>I took these images or have the right to share them. I agree that the MarineInst team may store them and use them for research, model training and education under the license above. Faces and personal information should not appear in the images.</span></label>
+        <div class="row gap"><button class="btn btn-glow btn-lg" id="cSubmit" type="submit"><svg><use href="#i-upload"/></svg>Submit contribution</button>
+          <div class="progress" id="cProg" hidden><i></i></div></div>
+      </form>
+    </section>
+  </main>
+
+  <!-- ===================================================== ABOUT -->
+  <main class="view page" id="view-about" hidden>
+    <section class="page-inner prose">
+      <header class="section-head reveal">
+        <p class="eyebrow">About</p>
+        <h2>MarineInst &amp; MarineChat</h2>
+      </header>
+      <div class="about-grid">
+        <article class="glass reveal">
+          <h3>The model</h3>
+          <p><b>MarineInst</b> is a foundation model for marine image analysis with <i>instance visual description</i>. It outputs instance masks for marine objects and captions for each of them. It was trained on <b>MarineInst20M</b>, the largest marine image dataset to date, whose masks come from human annotation plus automatic <i>binary instance filtering</i>.</p>
+          <p>MarineChat is the public, interactive front door to MarineInst. Captions come from plug-in VLMs: the domain-specific <b>MarineGPT</b> or recent general models (Qwen3.5, Gemma 4, Qwen3.8).</p>
+          <p class="row gap wrap"><a class="btn btn-ghost btn-sm" href="https://marineinst.hkustvgd.com/static/pdfs/Marine_Inst_main.pdf" target="_blank" rel="noopener">Paper</a>
+            <a class="btn btn-ghost btn-sm" href="https://github.com/zhengziqiang/MarineInst" target="_blank" rel="noopener">MarineInst code</a>
+            <a class="btn btn-ghost btn-sm" href="https://github.com/zhengziqiang/MarineInst20M" target="_blank" rel="noopener">MarineInst20M</a>
+            <a class="btn btn-ghost btn-sm" href="https://github.com/hkust-vgd/MarineGPT" target="_blank" rel="noopener">MarineGPT</a></p>
+        </article>
+        <article class="glass reveal">
+          <h3>Data &amp; privacy</h3>
+          <ul class="ticks">
+            <li>Images you upload to <b>Explore</b> are kept only so the app can work, and are deleted after 24 hours, unless you tick “allow the team to keep this image”.</li>
+            <li>Images sent through <b>Contribute</b> are kept under the license you choose.</li>
+            <li>We store a <i>hash</i> of your IP address for rate-limiting, never the address itself. Name, affiliation and email are optional.</li>
+            <li>Feedback and corrections (✓ / ✗, comments, edited masks) are used to evaluate and improve MarineInst models.</li>
+            <li>The <b>Species</b> tab uses public resources: iNaturalist, WoRMS, Wikipedia and Wikimedia Commons, plus BioCLIP-2 for visual matching. Only openly licensed photos and clips are shown, each with its author and license. They are fetched through our server, so your browser does not contact those sites. The one exception is a YouTube clip you choose to play.</li>
+          </ul>
+        </article>
+        <article class="glass reveal">
+          <h3>Limitations</h3>
+          <p class="fine" id="photoCredits"></p>
+          <p>MarineInst struggles with crowded scenes (e.g. a school of tiny fish), objects in shadow or low visibility, and self-occlusion. VLM captions can <b>hallucinate</b>. Please treat species IDs as suggestions, and tell us when they're wrong.</p>
+        </article>
+        <article class="glass reveal span2">
+          <h3>Cite</h3>
+          <pre class="cite mono" id="citeBox">@inproceedings{ziqiang2024marineinst,
+  title={MarineInst: A Foundation Model for Marine Image Analysis with Instance Visual Description},
+  author={Zheng, Ziqiang and Chen, Yiwei and Zeng, Huimin and Vu, Tuan-Anh and Hua, Binh-Son and Yeung, Sai-Kit},
+  booktitle={ECCV},
+  year={2024}
+}</pre>
+          <button class="btn btn-ghost btn-sm" id="copyCite"><svg><use href="#i-copy"/></svg>Copy BibTeX</button>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <!-- ===================================================== icon sprite -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="g-logo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5cf2ff"/><stop offset="1" stop-color="#3dffc4"/></linearGradient>
+    </defs>
+    <symbol id="i-logo" viewBox="0 0 40 40"><path d="M6 24c4-9 11-13 19-12 4 .5 7 2.6 9 5-3 .2-5.6 1.4-7.5 3.4C29 23 30 26 30 30c-3-2-5.6-3-8.4-3C14 27 9 26 6 24Z" fill="url(#g-logo)"/><circle cx="26.5" cy="17" r="1.6" fill="#021020"/><path d="M8 13c2-3 5-5 8-6M11 31c-2 1-4 1.5-6 1.3" stroke="#5cf2ff" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".7"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z" fill="currentColor"/></symbol>
+    <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6L4.5 18.5A1.7 1.7 0 0 0 6 21h12a1.7 1.7 0 0 0 1.5-2.5L14 9V3M7.5 15h9" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4m0 0L7 9m5-5 5 5M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-scan" viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 12h10" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4V5z" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/><path d="M8 10h8M8 13h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-cursor" viewBox="0 0 24 24"><path d="M5 3l14 7-6 2-2 6L5 3z" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 4l9 5-9 5-9-5 9-5zM3 14l9 5 9-5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/></symbol>
+    <symbol id="i-ghost" viewBox="0 0 24 24"><path d="M6 20V10a6 6 0 0 1 12 0v10l-2-1.5L14 20l-2-1.5L10 20l-2-1.5L6 20z" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/><circle cx="10" cy="10.5" r="1" fill="currentColor"/><circle cx="14" cy="10.5" r="1" fill="currentColor"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="16" cy="7" r="2" stroke="currentColor" stroke-width="1.8" fill="none"/><circle cx="10" cy="17" r="2" stroke="currentColor" stroke-width="1.8" fill="none"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2.5" fill="currentColor"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-2.5-6.5L4 12z" fill="currentColor"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12m0 0l-5-5m5 5 5-5M4 20h16" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.8" fill="none"/></symbol>
+    <symbol id="i-thumb" viewBox="0 0 24 24"><path d="M7 11v9H4v-9h3zm0 0l4-7c1.5 0 2.5 1 2.2 2.6L12.6 10H19a2 2 0 0 1 2 2.3l-1.2 6A2 2 0 0 1 17.8 20H7" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linejoin="round"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-wave" viewBox="0 0 24 24"><path d="M2 9c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2M2 15c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-wand" viewBox="0 0 24 24"><path d="M4 20L15 9M13 7l4 4M17 3v3M15.5 4.5h3M20 8v2M19 9h2" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/></symbol>
+    <symbol id="i-brush" viewBox="0 0 24 24"><path d="M14 4l6 6-8.5 8.5a3 3 0 0 1-2 .9L4 20l.6-5.5a3 3 0 0 1 .9-2L14 4z" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/></symbol>
+    <symbol id="i-eraser" viewBox="0 0 24 24"><path d="M9 20h11M4.5 15.5l9-9a2 2 0 0 1 2.8 0l2.2 2.2a2 2 0 0 1 0 2.8L11 19H8l-3.5-3.5z" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5zM4 19a2 2 0 0 1 2-2h13" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/></symbol>
+    <symbol id="i-reef" viewBox="0 0 24 24"><path d="M12 21V11M12 14c-3 0-4-3-4-6M12 12c3 0 4-3 4-6M8 21v-4c-2 0-3-2-3-4M16 21v-3c2 0 3-2 3-4M3 21h18" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10-6.5-10-6.5z" fill="currentColor"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.8" fill="none"/><circle cx="9" cy="10" r="2" fill="currentColor"/><path d="M4 18l5-5 4 4 3-3 4 4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/></symbol>
+    <symbol id="i-tree" viewBox="0 0 24 24"><path d="M12 4v16M12 9H6v4M12 9h6v4M6 13H4v4M6 13h2v4M18 13h-2v4M18 13h2v4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-people" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 5.5a3 3 0 0 1 0 5.5M18 14c2 .8 3 3 3 6" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/></symbol>
+    <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z" stroke="currentColor" stroke-width="1.8" fill="none"/></symbol>
+    <symbol id="i-depth" viewBox="0 0 24 24"><path d="M12 3v15m0 0l-4-4m4 4 4-4M5 21h14" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-fork" viewBox="0 0 24 24"><path d="M7 3v8a2 2 0 0 0 2 2v8M11 3v8a2 2 0 0 1-2 2M9 3v6M17 21V3c-2 1-3 4-3 7h3" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-ruler" viewBox="0 0 24 24"><path d="M3 16L16 3l5 5L8 21l-5-5zM7 12l2 2M10 9l2 2M13 6l2 2" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/></symbol>
+    <symbol id="i-egg" viewBox="0 0 24 24"><path d="M12 3c3.5 0 7 6 7 10.5A7 7 0 0 1 5 13.5C5 9 8.5 3 12 3z" stroke="currentColor" stroke-width="1.8" fill="none"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.5 8-8 9-4.5-1-8-4.5-8-9V6l8-3z" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/></symbol>
+    <symbol id="i-quiz" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .8-1 1.5v.7M12 17h.01" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/></symbol>
+  </svg>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
