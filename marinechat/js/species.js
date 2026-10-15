@@ -482,7 +482,7 @@ function fullView({ kind, items, taxon, prof, tab }) {
 function videosView(d, taxon, prof) {
   const box = h('div', {});
   if (d.videos.length) {
-    box.append(sourceLine(d.videos, 'From'), h('div', { class: 'vid-row' }, d.videos.map((v) => videoCard(v, taxon, prof))));
+    box.append(sourceLine(d.videos, 'From'), slider('x', 'vid-row', d.videos.map((v) => videoCard(v, taxon, prof)), 'Clips'));
   } else box.append(h('p', { class: 'muted' }, 'No openly licensed clips found yet.'));
   box.append(h('div', { class: 'sp-more' }, 'More clips: ',
     h('a', { href: d.more.youtube_shorts, target: '_blank', rel: 'noopener' }, 'YouTube Shorts ↗'), ' · ',
@@ -506,8 +506,48 @@ function photoTile(p, taxon, big = false) {
 }
 function photosView(photos, taxon) {
   if (!photos.length) return h('p', { class: 'muted' }, 'No openly licensed photos found.');
-  return [sourceLine(photos, 'From'), h('div', { class: 'ph-grid' }, photos.slice(0, 24).map((p) => photoTile(p, taxon))),
-    photos.length > 24 ? h('p', { class: 'fine' }, `Showing 24 of ${photos.length}. The corner buttons show all of them, in a pop-out window or on their own page.`) : ''];
+  return [sourceLine(photos, 'From'), slider('y', 'ph-grid', photos.map((p) => photoTile(p, taxon)), 'Photos')];
+}
+
+/** A scroll box with its own slider bar, always visible (native scrollbars hide on Macs and phones until used):
+ *  scroll or swipe the box, drag the handle, or click the track. */
+function slider(axis, cls, kids, label) {
+  const x = axis === 'x', XY = x ? 'X' : 'Y';
+  const box = h('div', { class: `sl-box ${cls}`, tabindex: '0', role: 'region', 'aria-label': `${label}, scrollable` }, kids);
+  const thumb = h('i', { class: 'sl-thumb' });
+  const track = h('div', { class: 'sl-track', 'aria-hidden': 'true' }, thumb);
+  const wrap = h('div', { class: `slider ${axis}` }, h('div', { class: 'sl-view' }, box), track);
+  const m = () => {
+    const view = x ? box.clientWidth : box.clientHeight, full = x ? box.scrollWidth : box.scrollHeight;
+    const tl = x ? track.clientWidth : track.clientHeight, len = Math.max(32, full ? tl * view / full : tl);
+    return { view, full, pos: x ? box.scrollLeft : box.scrollTop, tl, len, max: full - view };
+  };
+  const update = () => {
+    const { pos, tl, len, max } = m();
+    wrap.classList.toggle('over', max > 1);
+    wrap.classList.toggle('at-end', pos >= max - 1);
+    if (max <= 1) return;
+    thumb.style[x ? 'width' : 'height'] = `${len}px`;
+    thumb.style.transform = `translate${XY}(${(tl - len) * Math.min(1, pos / max)}px)`;
+  };
+  const scrollTo = (v) => { if (x) box.scrollLeft = v; else box.scrollTop = v; };
+  thumb.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    const g = m(), start = x ? e.clientX : e.clientY, ratio = g.max / Math.max(1, g.tl - g.len);
+    thumb.setPointerCapture(e.pointerId); wrap.classList.add('drag');
+    const move = (ev) => scrollTo(g.pos + ((x ? ev.clientX : ev.clientY) - start) * ratio);
+    const up = () => { wrap.classList.remove('drag'); thumb.removeEventListener('pointermove', move); thumb.removeEventListener('pointerup', up); thumb.removeEventListener('pointercancel', up); };
+    thumb.addEventListener('pointermove', move); thumb.addEventListener('pointerup', up); thumb.addEventListener('pointercancel', up);
+  });
+  track.addEventListener('pointerdown', (e) => {          // click on the track: centre the handle there
+    if (e.target !== track) return;
+    const g = m(), r = track.getBoundingClientRect(), at = (x ? e.clientX - r.left : e.clientY - r.top) - g.len / 2;
+    box.scrollTo({ [x ? 'left' : 'top']: g.max * Math.max(0, Math.min(1, at / Math.max(1, g.tl - g.len))), behavior: 'smooth' });
+  });
+  box.addEventListener('scroll', update, { passive: true });
+  new ResizeObserver(update).observe(box);                 // also fires when a folded section opens
+  requestAnimationFrame(update);
+  return wrap;
 }
 
 function similarView(d, taxon, isMain) {
