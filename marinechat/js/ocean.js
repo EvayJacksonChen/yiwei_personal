@@ -108,10 +108,12 @@ void main(){
     if (photo > 2.5) {                                  // deep sea: drifting dark haze, deeper at the edges
       float fog = fbm(pw * 1.6 + vec2(t * .015, -t * .01));
       float edge = pow(length(uv - .5) * 1.25, 2.);
-      gl_FragColor = vec4(cc.rgb, clamp(.08 + .22 * fog + .35 * edge * vig, 0., .6));
+      float ha = clamp(.08 + .22 * fog + .35 * edge * vig, 0., .6);
+      gl_FragColor = vec4(cc.rgb * ha, ha);              // premultiplied alpha
       return;
     }
-    gl_FragColor = vec4(cc.rgb, clamp(light, 0., .8));
+    float la = clamp(light, 0., .8);
+    gl_FragColor = vec4(cc.rgb * la, la);                // premultiplied alpha
     return;
   }
   vec3 top = mix(top0, top1, smoothstep(0.,.6,d));
@@ -130,8 +132,12 @@ void main(){
 }`;
 
 function startGL(canvas) {
-  const gl = canvas.getContext('webgl', { antialias: false, premultipliedAlpha: false, alpha: true });
-  if (!gl) { canvas.style.background = 'linear-gradient(#06304a,#020814)'; return null; }
+  // ?gl=0 turns the effect layer off (diagnostics: the photo backgrounds and canvas scenes still show)
+  if (new URLSearchParams(location.search).get('gl') === '0') { canvas.style.display = 'none'; return null; }
+  // Premultiplied output (the WebGL default): some GPU drivers ignore premultipliedAlpha:false and then add the
+  // nearly transparent overlay at full strength, which washed the light / vivid photo backgrounds out to white.
+  const gl = canvas.getContext('webgl', { antialias: false, premultipliedAlpha: true, alpha: true });
+  if (!gl) { canvas.style.display = 'none'; return null; }      // no WebGL: the photo backgrounds alone
   const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
   const prog = gl.createProgram();
   gl.attachShader(prog, sh(gl.VERTEX_SHADER, 'attribute vec2 p;void main(){gl_Position=vec4(p,0,1);}'));

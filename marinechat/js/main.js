@@ -122,20 +122,32 @@ function onScroll() {
 
 // ====================================================================== status
 async function pollStatus() {
+  await refreshStatus();
+  setTimeout(pollStatus, document.hidden ? 10000 : S.busy || S.capBusy ? 1500 : 4000);
+}
+/** Server status, with `active`/`state` describing the model picked here (each model has its own GPU worker). */
+async function refreshStatus() {
+  const want = S.model;
   try {
-    S.status = await api('/api/status'); S.statusAt = performance.now();
-    const pill = $('#gpuPill'), st = S.status;
+    const st = await api(`/api/status?model=${encodeURIComponent(want)}`);
+    if (want !== S.model) return;   // the visitor switched models while this was in flight
+    S.status = st; S.statusAt = performance.now();
+    const pill = $('#gpuPill'), models = st.models;
     const label = st.active ? MODEL(st.active).label : '';
     pill.dataset.s = st.state;
     pill.querySelector('span').textContent = st.state === 'ready' ? `${label} ready`
-      : st.state === 'loading' ? `Loading ${label} · ${loadProgress().text}` : st.state === 'error' ? 'Model error' : 'GPU idle · MarineInst ready';
+      : st.state === 'loading' ? `Loading ${label} · ${loadProgress().text}` : st.state === 'error' ? 'Model error'
+      : models ? `${MODEL(want).label} loads on first use` : 'GPU idle · MarineInst ready';
     pill.title = `Free VRAM ${st.free_vram_gb} GB · ${st.busy} running · ${st.waiting} waiting`;
     $('.mp-dot').dataset.s = st.active === S.model ? st.state : '';
-    $$('.mp-item').forEach((b) => { const l = b.querySelector('.live'); if (l) l.textContent = st.active === b.dataset.id && st.state === 'ready' ? '● loaded' : ''; });
+    $$('.mp-item').forEach((b) => {
+      const l = b.querySelector('.live'); if (!l) return;
+      const s = models ? (models[b.dataset.id] || {}).state : st.active === b.dataset.id ? st.state : '';
+      l.dataset.s = s || ''; l.textContent = s === 'ready' ? '● loaded' : s === 'loading' ? '◌ loading…' : '';
+    });
   } catch {
     $('#gpuPill').dataset.s = 'error'; $('#gpuPill span').textContent = 'offline';
   }
-  setTimeout(pollStatus, document.hidden ? 10000 : S.busy || S.capBusy ? 1500 : 4000);
 }
 
 function renderStats(st = {}) {
@@ -207,6 +219,8 @@ async function heroDemo() {
     if (await waitWhile(1800 + paths.length * 350)) continue;
     // captions: typed slowly, each held long enough to read
     let jumped = false;
+    // one caption position per scene: the side that hides least of the creatures it will describe
+    await placeCaption(frame, sc, (sc.captions || []).map((c) => sc.instances[c.index]), (sc.captions || []).map((c) => c.text));
     for (const c of sc.captions || []) {
       paths.forEach((p, i) => p.classList.toggle('sel', i === c.index));
       tag.textContent = `#${c.index + 1}`;
@@ -216,6 +230,27 @@ async function heroDemo() {
     }
     if (!jumped) await waitWhile(1200);
   }
+}
+/** Put the caption at the bottom or the top of the frame, whichever hides less of the creatures it will describe. */
+async function placeCaption(frame, sc, insts, texts) {
+  const box = $('#heroCaption'), txt = box.querySelector('.txt');
+  insts = insts.filter((r) => r?.bbox);
+  if (!insts.length) return;
+  const fw = frame.clientWidth, fh = frame.clientHeight;
+  const s = Math.max(fw / sc.width, fh / sc.height), ox = (fw - sc.width * s) / 2, oy = (fh - sc.height * s) / 2;  // object-fit: cover
+  const keep = txt.textContent;                                              // measure the tallest finished caption (not painted)
+  const ch = Math.max(...texts.map((t) => { txt.textContent = t; return box.offsetHeight; })), m = box.offsetLeft;
+  txt.textContent = keep;
+  const hidden = (top, bottom) => insts.reduce((sum, { bbox: [bx, by, bw, bh] }) => {
+    const x0 = ox + bx * s, x1 = ox + (bx + bw) * s, y0 = oy + by * s, y1 = oy + (by + bh) * s;
+    return sum + Math.max(0, Math.min(x1, fw - m) - Math.max(x0, m)) * Math.max(0, Math.min(y1, bottom) - Math.max(y0, top));
+  }, 0);
+  const atTop = hidden(m, m + ch) < hidden(fh - m - ch, fh - m) * .6;        // prefer the bottom unless the top is clearly better
+  if (atTop === frame.classList.contains('cap-top')) return;
+  box.style.opacity = '0';
+  await sleep(260);
+  frame.classList.toggle('cap-top', atTop);
+  box.style.opacity = '';
 }
 function typeText(el, text) {
   return new Promise((res) => {
@@ -254,6 +289,7 @@ function renderModelMenu() {
 }
 function pickModel(id) {
   S.model = id; store.set('model', id); renderModelMenu();
+  refreshStatus();
   if (S.image) api('/api/warm', { body: { model: id } }).catch(() => {});
   toast(`Captions & chat will use ${MODEL(id).label}`, '', 2500);
 }

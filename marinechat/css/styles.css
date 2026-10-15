@@ -281,6 +281,7 @@ body:not([data-mode="research"]) .research-only { display: none !important; }
 .mp-item small { color: var(--ink-3); grid-column: 1 / -1; font-size: 12.5px; line-height: 1.4; }
 .mp-item .mc-badge { align-self: center; }
 .mp-item .live { font: 11px var(--mono); color: var(--ok); }
+.mp-item .live[data-s="loading"] { color: var(--amber); }
 
 .workspace { flex: 1; min-height: 0; min-width: 0; display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(340px, 1fr); gap: 12px; }
 .stage-wrap { min-height: 0; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
@@ -1302,3 +1303,10 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px
 .an-short .tt-stage { width: fit-content; }
 .an-short .tt-feed { width: calc((100dvh - var(--nav-h) - 96px) * 9 / 16); min-width: 300px; }
 @media (max-width: 760px) { .an-short .tt-stage { width: 100%; } .an-short .tt-feed { width: 100%; min-width: 0; } }
+
+/* hero showcase layering: caption and dots always above the masks; caption moves to the top when it would hide the creature */
+.demo-caption { z-index: 4; transition: opacity .25s var(--ease); }
+.hero-dots { z-index: 5; }
+.demo-frame.cap-top .demo-caption { top: 16px; bottom: auto; }
+.demo-frame.cap-top .hero-dots { top: auto; bottom: 14px; }
+@media (max-width: 560px) { .demo-frame.cap-top .demo-caption { top: 10px; } }

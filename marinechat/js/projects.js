@@ -8,7 +8,7 @@ import { leaderBoard } from './boards.js';
 const fmt = (t) => (t == null ? '–' : t >= 3600 ? `${Math.floor(t / 3600)}:${String(Math.floor(t % 3600 / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`
   : `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`);
 const ago = (ts) => { const s = Date.now() / 1000 - ts; return s < 90 ? 'just now' : s < 3600 ? `${Math.round(s / 60)} min ago` : s < 86400 ? `${Math.round(s / 3600)} h ago` : `${Math.round(s / 86400)} d ago`; };
-const CUT = { start: 'start of the video', 'scene cut': 'after a scene cut', 'visual change': 'after a visual change (BioCLIP-2)', 'max length': 'split at the 45 s limit' };
+const CUT = { start: 'start of the video', 'scene cut': 'after a scene cut', 'visual change': 'after a visual change (BioCLIP-2)', 'max length': 'split at the length limit' };
 const STATUS = { todo: 'To do', claimed: 'In progress', done: 'Needs review', 'needs-work': 'Needs work', reviewed: 'Reviewed' };
 let timers = [];
 export const stopProjectTimers = () => { timers.forEach(clearInterval); timers = []; };
