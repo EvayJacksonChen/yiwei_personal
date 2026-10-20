@@ -28,7 +28,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400;1,9..144,500&family=Outfit:wght@300;400;500&family=Silkscreen&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/site.css?v=4.2">
+  <link rel="stylesheet" href="css/site.css?v=4.3">
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -63,6 +63,7 @@
       <a class="brand" href="#top">Yiwei Chen</a>
       <nav class="nav" aria-label="Sections">
         <a href="#about">About</a>
+        <a href="#projects">Projects</a>
         <a href="#publications">Publications</a>
         <a href="#news">News</a>
         <a href="#experience">Experience</a>
@@ -112,6 +113,11 @@
             <li><a href="https://www.linkedin.com/in/yiwei-chen-0a36b2317/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9v12"></path><circle cx="6" cy="4.5" r="1.5"></circle><path d="M10 20v-7a4 4 0 0 1 8 0v7"></path><path d="M10 12v8"></path></svg>LinkedIn</a></li>
             <li><a href="https://x.com/_yiweichen" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="solid" d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>X</a></li>
           </ul>
+          <a class="hero-cta" href="https://yiweichen.org/marinechat/" target="_blank" rel="noopener">
+            <span class="hero-cta-tag px">New</span>
+            <span class="hero-cta-text"><strong>MarineChat</strong><span class="hero-cta-sub"> · Ask the ocean anything</span></span>
+            <span class="hero-cta-arrow" aria-hidden="true">↗</span>
+          </a>
         </div>
         <div class="portrait-wrap" id="portrait">
           <canvas class="arcade" id="arcade" aria-hidden="true"></canvas>
@@ -181,6 +187,34 @@
           <p>If you would like to talk about the work, or about a collaboration, write to <a href="mailto:jackson.chen.yiwei@gmail.com">jackson.chen.yiwei@gmail.com</a> or <a href="mailto:ychenmb@connect.ust.hk">ychenmb@connect.ust.hk</a>.</p>
         </div>
       </div>
+      <div class="wrap zone-grid" id="projects">
+        <header class="zone-head">
+          <p class="zone-no px">02</p>
+          <h2>Projects</h2>
+          <p class="zone-meta px">Sunlit zone<span class="sep"> · </span><br>Live on the web</p>
+        </header>
+        <div class="zone-body">
+          <article class="project">
+            <a class="project-media" href="https://yiweichen.org/marinechat/" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true">
+              <img src="assets/marinechat-demo.jpg" width="363" height="244" alt="" loading="lazy">
+              <span class="project-scan"></span>
+            </a>
+            <div class="project-copy">
+              <p class="venue px"><span class="live-dot" aria-hidden="true"></span>Live · Web app · 2026</p>
+              <h3><a href="https://yiweichen.org/marinechat/" target="_blank" rel="noopener">MarineChat</a></h3>
+              <p class="project-tagline">Ask the ocean anything.</p>
+              <p class="project-text">Drop in an underwater photo: MarineChat finds every creature with MarineInst (ECCV 2024 Oral), describes each one with MarineGPT or a 2026 vision-language model, and answers your questions about it. Built for students learning marine science, and for researchers who check and correct what the AI sees.</p>
+              <ul class="project-tags px" aria-label="Features">
+                <li>Instance segmentation</li>
+                <li>Captions</li>
+                <li>Species Q&amp;A</li>
+                <li>Annotation export</li>
+              </ul>
+              <a class="project-cta px" href="https://yiweichen.org/marinechat/" target="_blank" rel="noopener">Try MarineChat <span aria-hidden="true">↗</span></a>
+            </div>
+          </article>
+        </div>
+      </div>
       <div class="shelf" aria-hidden="true"></div>
     </section>
 
@@ -188,7 +222,7 @@
       <div class="stage" aria-hidden="true"></div>
       <div class="wrap zone-grid">
         <header class="zone-head">
-          <p class="zone-no px">02</p>
+          <p class="zone-no px">03</p>
           <h2>Publications</h2>
           <p class="zone-meta px">Twilight zone<span class="sep"> · </span><br>200 – 1,000 m</p>
         </header>
@@ -226,12 +260,13 @@
       <div class="stage" aria-hidden="true"></div>
       <div class="wrap zone-grid">
         <header class="zone-head">
-          <p class="zone-no px">03</p>
+          <p class="zone-no px">04</p>
           <h2>News</h2>
           <p class="zone-meta px">Midnight zone<span class="sep"> · </span><br>1,000 – 4,000 m</p>
         </header>
         <div class="zone-body">
           <ol class="news">
+            <li><time class="px" datetime="2026-10">2026.10</time><span>Launched <a href="https://yiweichen.org/marinechat/" target="_blank" rel="noopener">MarineChat</a>, a public web app built on MarineInst.</span></li>
             <li><time class="px" datetime="2026-10">2026.10</time><span>Recognized as a Top Reviewer at NeurIPS 2026.</span></li>
             <li><time class="px" datetime="2026-03">2026.03</time><span>MaskGuide accepted at RA-L.</span></li>
             <li><time class="px" datetime="2025-12">2025.12</time><span>ORCA accepted at WACV 2026, as an oral.</span></li>
@@ -247,7 +282,7 @@
       <div class="stage" aria-hidden="true"></div>
       <div class="wrap zone-grid">
         <header class="zone-head">
-          <p class="zone-no px">04</p>
+          <p class="zone-no px">05</p>
           <h2>Experience</h2>
           <p class="zone-meta px">Abyssal zone<span class="sep"> · </span><br>4,000 m +</p>
         </header>
@@ -317,7 +352,7 @@
 
   <div id="reef"></div>
 
-  <script src="js/sprites.js?v=4.2"></script>
-  <script src="js/scene.js?v=4.2"></script>
+  <script src="js/sprites.js?v=4.3"></script>
+  <script src="js/scene.js?v=4.3"></script>
 </body>
 </html>

@@ -24,6 +24,7 @@
     "Papers: MaskGuide (RA-L 2026); ORCA (WACV 2026, oral); MarineInst (ECCV 2024, oral, and an Oral Presentation Award); an arXiv 2024 case study on GPT-4V for marine analysis.",
     "Teaching assistant at HKUST for COMP 2211 Exploring Artificial Intelligence (Spring 2025 and Fall 2025) and MSBD 6000Q Vision Language Models for Vision Tasks (Fall 2025). Outstanding PG Teaching Assistant Honorable Mention, 2025–26.",
     "Recognized as a Top Reviewer at NeurIPS 2026.",
+    "He built MarineChat (https://yiweichen.org/marinechat/), launched in October 2026: a public web app built on MarineInst and vision-language models. You drop in an underwater photo; it finds every creature, describes each one with MarineGPT or a 2026 vision-language model, and answers questions about it, for students learning marine science and for researchers who check and correct the AI.",
     "Visiting student at UESTC, Chengdu, August–November 2026.",
     "Public email: jackson.chen.yiwei@gmail.com and ychenmb@connect.ust.hk."
   ].join(" ");
@@ -3064,6 +3065,9 @@
 
   // Questions about the page owner, answered from the page's own facts.
   const ABOUT_YIWEI = [
+    { re: /marinechat|marine chat|web ?app|demo|platform|projects?\b|项目|平台|演示/i,
+      en: "Try MarineChat at yiweichen.org/marinechat: drop in an underwater photo and it finds every creature, describes each one and answers your questions. Yiwei built it on MarineInst and vision-language models.",
+      zh: "去 yiweichen.org/marinechat 试试 MarineChat：上传一张水下照片，它会找出每一只生物、逐一描述，并回答你的问题。这是奕玮基于 MarineInst 和视觉语言模型做的平台。" },
     { re: /paper|publication|publish|maskguide|orca|marineinst|eccv|wacv|论文|发表/i,
       en: "His papers include MaskGuide (RA-L 2026), ORCA (WACV 2026, oral) and MarineInst (ECCV 2024, oral, with an Oral Presentation Award).",
       zh: "他的论文包括 MaskGuide（RA-L 2026）、ORCA（WACV 2026，口头报告）和 MarineInst（ECCV 2024，口头报告，并获口头报告奖）。" },
@@ -4637,6 +4641,7 @@
     let lastAtm = -1;
     let lastTone = "";
     let lastHere = "";
+    let navTargets = [];
     let lastDepth = -1;
     let lastZone = "";
     const seen = {};
@@ -4658,6 +4663,13 @@
         ticks.push(b);
       });
     }
+
+    onLayout(function () {
+      navTargets = links.map(function (link) {
+        const el = document.querySelector(link.getAttribute("href"));
+        return { link: link, top: el ? el.getBoundingClientRect().top + S.sy : Infinity };
+      });
+    });
 
     onLayout(function () {
       if (!rail) return;
@@ -4776,9 +4788,13 @@
           lastTone = headZone;
           document.body.dataset.tone = headZone;
         }
-        if (here.id !== lastHere) {
-          lastHere = here.id;
-          links.forEach(function (link) { link.classList.toggle("is-here", link.getAttribute("href") === "#" + here.id); });
+        let current = null;
+        const line = S.sy + S.vh * 0.4;
+        navTargets.forEach(function (t) { if (t.top <= line) current = t.link; });
+        const currentKey = current ? current.getAttribute("href") : "";
+        if (currentKey !== lastHere) {
+          lastHere = currentKey;
+          links.forEach(function (link) { link.classList.toggle("is-here", link === current); });
         }
         if (S.t > 0.5) maybeHint(here.id);
         fireHint();
