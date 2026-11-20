@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>Multi-Category Counting Demo</title>
+<style>
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --ink:#1d2430; --muted:#5d6878; --line:#d9dee6; --accent:#3b5bdb;
+  --chip:#eef1f5; --over:#c92a2a; --under:#1c63c4; --ok:#2b8a3e; --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.08);
+  --ours:#eef3ff; --oursline:#9db4ff;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1218; --panel:#171b23; --ink:#e7ebf2; --muted:#9aa5b5; --line:#2a313d; --accent:#8ea8ff;
+    --chip:#222833; --over:#ff6b6b; --under:#74a9ff; --ok:#69db7c; --shadow:none; --ours:#1a2238; --oursline:#3d5299;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1218; --panel:#171b23; --ink:#e7ebf2; --muted:#9aa5b5; --line:#2a313d; --accent:#8ea8ff;
+  --chip:#222833; --over:#ff6b6b; --under:#74a9ff; --ok:#69db7c; --shadow:none; --ours:#1a2238; --oursline:#3d5299;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;}
+.wrap{max-width:1680px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:22px;line-height:1.25;margin:0 0 6px;font-weight:650;letter-spacing:-.01em}
+h2{font-size:16px;margin:28px 0 10px;font-weight:650}
+p{margin:0 0 10px}
+.lead{color:var(--muted);max-width:980px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow)}
+/* demo tabs */
+.tabs{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin:16px 0 14px}
+.tab{display:flex;gap:10px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--panel);cursor:pointer;text-align:left;color:inherit;font:inherit}
+.tab:hover{border-color:var(--accent)}
+.tab[aria-selected="true"]{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 30%,transparent)}
+.tab img{width:84px;height:48px;object-fit:cover;border-radius:6px;flex:none;background:var(--chip)}
+.tab b{display:block;font-size:13px;font-weight:650}
+.tab span{display:block;font-size:12px;color:var(--muted);line-height:1.3}
+/* controls */
+.bar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:10px 12px;margin-bottom:12px}
+.bar button,.bar select{font:inherit;color:inherit;background:var(--chip);border:1px solid var(--line);border-radius:7px;padding:5px 10px;cursor:pointer}
+.bar button:hover{border-color:var(--accent)}
+.bar .play{min-width:78px;font-weight:600}
+.bar input[type=range]{flex:1 1 260px;min-width:160px;accent-color:var(--accent)}
+.bar .fr{font-variant-numeric:tabular-nums;color:var(--muted);min-width:92px}
+@media (max-width:900px){.bar{position:static}}
+.toggles{display:flex;flex-wrap:wrap;gap:6px 14px}
+.toggles label{display:flex;align-items:center;gap:5px;cursor:pointer;color:var(--muted);user-select:none}
+.toggles input{accent-color:var(--accent)}
+/* legend */
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin:0 0 12px}
+.legend .sw{display:inline-block;width:14px;height:14px;border-radius:3px;margin-right:6px;vertical-align:-2px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.legend .item{white-space:nowrap}
+.legend .gtn{color:var(--muted);font-variant-numeric:tabular-nums}
+.demo-desc{color:var(--muted);margin:-4px 0 12px;max-width:1100px}
+/* grid of panels */
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:1300px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{overflow:hidden;cursor:zoom-in;display:flex;flex-direction:column}
+.panel.ours{background:var(--ours);border-color:var(--oursline)}
+.ph{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:6px 9px 5px}
+.ph .nm{font-weight:650;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ph .kind{font-size:11px;color:var(--muted);font-weight:500;margin-left:6px}
+.ph .err{font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}
+.ph .err b{color:var(--ink)}
+.cv{position:relative;width:100%;background:#000}
+.cv canvas{display:block;width:100%;height:100%}
+.chips{display:flex;flex-wrap:wrap;gap:4px 8px;padding:6px 9px 8px;font-size:12px;font-variant-numeric:tabular-nums;min-height:32px}
+.chip{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.chip i{display:inline-block;width:10px;height:10px;border-radius:2px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.chip .p{font-weight:650}
+.chip .p.over{color:var(--over)} .chip .p.under{color:var(--under)} .chip .p.ok{color:var(--ok)}
+.chip .g{color:var(--muted)}
+.chip.note{color:var(--muted)}
+/* key */
+.key{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin:8px 0 6px}
+.key .k{display:flex;gap:10px;align-items:flex-start;padding:10px}
+.key svg{flex:none}
+.key p{margin:0;font-size:13px;color:var(--muted)} .key b{color:var(--ink);font-weight:600}
+/* summary table */
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{font-weight:600;color:var(--muted);vertical-align:bottom}
+tr.ours td{background:var(--ours);font-weight:600}
+td .over{color:var(--over)} td .under{color:var(--under)}
+.cdot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.small{font-size:12px;color:var(--muted)}
+/* compare modal */
+.modal{position:fixed;inset:0;background:rgba(5,8,12,.78);display:none;align-items:center;justify-content:center;z-index:20;padding:16px}
+.modal.open{display:flex}
+.mbox{width:min(1600px,100%);max-height:100%;overflow:auto;padding:12px}
+.mhead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.mhead button{font:inherit;color:inherit;background:var(--chip);border:1px solid var(--line);border-radius:7px;padding:5px 10px;cursor:pointer}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:900px){.mgrid{grid-template-columns:1fr}}
+.mgrid .panel{cursor:default}
+.foot{margin-top:28px;color:var(--muted);font-size:12px}
+kbd{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--chip);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Multi-category open-world video individual counting: qualitative comparison</h1>
+  <p class="lead">Each demo plays the evaluation frames of one test video. Every panel shows a method's output on the same frame: categories are colours (names only in the legend), the number on each object is the identity the method assigned, counted per category in the order the method first counts it, so the largest number per colour is that method's count. Chips under a panel give the running count so far against the ground truth (<span style="color:var(--over)">red</span>: over, <span style="color:var(--under)">blue</span>: under). Click a panel to compare it with MARLIN at a larger size.</p>
+
+  <div class="key">
+    <div class="card k"><svg width="54" height="40" viewBox="0 0 54 40" aria-hidden="true"><path d="M6 22c4-12 30-16 40-6c-6 12-32 16-40 6z" fill="#E69F00" fill-opacity=".45" stroke="#E69F00" stroke-width="2"/><circle cx="26" cy="20" r="8" fill="#E69F00" stroke="#222" stroke-width="1"/><text x="26" y="24" font-size="10" font-weight="700" text-anchor="middle" fill="#111">3</text></svg><p><b>Mask or box with identity.</b> Colour = category, number = identity (per category, in counting order).</p></div>
+    <div class="card k"><svg width="54" height="40" viewBox="0 0 54 40" aria-hidden="true"><path d="M6 22c4-12 30-16 40-6c-6 12-32 16-40 6z" fill="#ff1f1f" fill-opacity=".55" stroke="#ff1f1f" stroke-width="2.5"/><circle cx="26" cy="20" r="8" fill="#ff1f1f" stroke="#fff" stroke-width="1.5"/><text x="26" y="24" font-size="10" font-weight="700" text-anchor="middle" fill="#fff">17</text></svg><p><b>Flashing red: identity switch.</b> A new identity lands on a fish the method had already counted, so the count grows on the same fish.</p></div>
+    <div class="card k"><svg width="54" height="40" viewBox="0 0 54 40" aria-hidden="true"><defs><pattern id="kst" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="4" height="8" fill="#56B4E9"/><rect x="4" width="4" height="8" fill="#CC79A7"/></pattern></defs><path d="M6 22c4-12 30-16 40-6c-6 12-32 16-40 6z" fill="url(#kst)" stroke="#fff" stroke-width="1.5" stroke-dasharray="3 2"/><circle cx="20" cy="20" r="7" fill="#56B4E9" stroke="#222"/><circle cx="34" cy="20" r="7" fill="#CC79A7" stroke="#222"/></svg><p><b>Striped: duplicate on one fish.</b> Two or more predictions cover the same fish in the same frame; stripes take the colours of the categories involved.</p></div>
+    <div class="card k"><svg width="54" height="40" viewBox="0 0 54 40" aria-hidden="true"><circle cx="14" cy="20" r="6" fill="#E69F00" stroke="#fff" stroke-width="2"/><circle cx="31" cy="20" r="6" fill="#CC79A7" stroke="#111" stroke-width="1.5"/><path d="M45 20 L45 14 A6 6 0 0 1 50.2 23 Z" fill="#E69F00"/><path d="M45 20 L50.2 23 A6 6 0 0 1 39.8 23 Z" fill="#CC79A7"/><path d="M45 20 L39.8 23 A6 6 0 0 1 45 14 Z" fill="#56B4E9"/><circle cx="45" cy="20" r="6" fill="none" stroke="#111" stroke-width="1.5"/></svg><p><b>Dots: points without tracks.</b> White ring: annotated fish (ground truth). Dark ring: Molmo2-8B points. A split dot is one spot pointed at for several categories.</p></div>
+  </div>
+
+  <h2 id="demos-h">Demos</h2>
+  <div class="tabs" id="tabs" role="tablist" aria-labelledby="demos-h"></div>
+
+  <div class="card bar" id="bar">
+    <button class="play" id="play" aria-label="Play or pause">Play</button>
+    <button id="prev" aria-label="Previous frame">&#9664;</button>
+    <button id="next" aria-label="Next frame">&#9654;</button>
+    <input type="range" id="slider" min="0" max="0" value="0" aria-label="Frame">
+    <span class="fr" id="fr">frame 1 / 1</span>
+    <label class="small">speed
+      <select id="fps" aria-label="Playback speed">
+        <option value="1">1 fps</option><option value="2" selected>2 fps</option><option value="3">3 fps</option><option value="5">5 fps</option>
+      </select>
+    </label>
+    <div class="toggles">
+      <label><input type="checkbox" id="tShapes" checked> shapes</label>
+      <label><input type="checkbox" id="tIds" checked> identities</label>
+      <label><input type="checkbox" id="tSwitch" checked> flag ID switches</label>
+      <label><input type="checkbox" id="tDup" checked> flag duplicates</label>
+      <label><input type="checkbox" id="tGt"> GT points on all panels</label>
+    </div>
+  </div>
+
+  <div class="legend" id="legend"></div>
+  <p class="demo-desc" id="desc"></p>
+  <div class="grid" id="grid"></div>
+
+  <h2>Video-level counts for this demo</h2>
+  <div class="card tablewrap"><table id="summary"></table></div>
+  <p class="small" style="margin-top:8px">Counts are unique identities per category over the whole video (Molmo2-8B: mean points per frame, since it has no identities). Σ|Δ| is the multi-category absolute count error of this video. ID switches count new identities that land on an already counted annotated fish; duplicates count object-frames covered by two or more predictions at once.</p>
+
+  <p class="foot">Keyboard: <kbd>space</kbd> play/pause, <kbd>&larr;</kbd> <kbd>&rarr;</kbd> step, <kbd>1</kbd>–<kbd>5</kbd> switch demo, <kbd>esc</kbd> close the comparison. All outputs are the predictions evaluated in the paper (for Molmo2-8B, per-frame pointing run for this page); frames are shown at reduced resolution.</p>
+</div>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Side-by-side comparison">
+  <div class="card mbox">
+    <div class="mhead"><b id="mtitle">Compare</b><button id="mclose">Close</button></div>
+    <div class="mgrid" id="mgrid"></div>
+  </div>
+</div>
+
+<script>
+const DEMOS = [
+  {id:"demo1", title:"Look-alike butterflyfish", sub:"3 categories · 21 fish · 38 frames", desc:"16 redtail butterflyfish swim with 2 redfin emperors and 3 triggerfish. Category-wise prompting claims the same fish under several names (striped masks): SAM 3.1 counts 16 of every category and CountVID counts 82 fish in total, while MASA (multi) finds a single fish. MARLIN is off by one in each category."},
+  {id:"demo2", title:"Eight co-occurring categories", sub:"8 categories · 18 fish · 17 frames", desc:"Eighteen fish from eight categories, five of them with a single individual. SAM 3.1 returns 9 to 16 tracks for every category, MASA (multi) and OVTrack find almost nothing, and MARLIN's total count error is 7."},
+  {id:"demo3", title:"Reef crevice", sub:"4 categories · 9 fish · 39 frames", desc:"Nine large fish of four categories. Category-wise prompting claims most fish under all four names, so CountVID, SAM 3.1 and SAM3Count count 34 to 44 fish instead of 9; MARLIN counts 10."},
+  {id:"demo4", title:"Dense school with rare species", sub:"4 categories · 51 fish · 34 frames", desc:"43 whitetip soldierfish share the scene with three rare categories. Category-wise counters put rare names on school members: CountVID counts 37 neon gobies and 28 wobbegong sharks (one of each in the ground truth). MARLIN counts 1, 38, 2 and 2 against 1, 43, 1 and 6."},
+  {id:"demo5", title:"Surgeonfish school with re-entries", sub:"5 categories · 47 fish · 39 frames", desc:"34 yellowfin surgeonfish and four rarer categories leave and re-enter the frame. Identity switches inflate the counts: MASA (single) and CountVID each count 205 fish for 47 annotated. MARLIN counts 40 and misses the sunburst butterflyfish."},
+];
+const KIND = {gt:"points", mask:"masks", box:"boxes", points:"points"};
+const RED = "#ff1f1f";
+const REDUCE = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const S = {demo:null, D:null, t:0, playing:false, timer:null, imgs:[], panels:[], mpanels:[], raf:0,
+           shapes:true, ids:true, sw:true, dup:true, gtAll:false};
+const $ = id => document.getElementById(id);
+const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
+
+function lum(hex){ const n=parseInt(hex.slice(1),16); const r=(n>>16)&255,g=(n>>8)&255,b=n&255; return (0.299*r+0.587*g+0.114*b)/255; }
+function rgba(hex,a){ const n=parseInt(hex.slice(1),16); return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`; }
+
+// ---------- data loading (script tags work from file:// as well as http)
+function loadDemo(id){
+  return new Promise((res, rej) => {
+    if (window.MARLIN_DEMO && window.MARLIN_DEMO[id]) return res(window.MARLIN_DEMO[id]);
+    const s = document.createElement("script"); s.src = `data/${id}.js`;
+    s.onload = () => res(window.MARLIN_DEMO[id]); s.onerror = rej; document.head.appendChild(s);
+  });
+}
+
+// ---------- tabs
+function buildTabs(){
+  const tabs = $("tabs");
+  DEMOS.forEach((d, k) => {
+    const b = document.createElement("button"); b.className = "tab"; b.setAttribute("role","tab"); b.id = "tab-"+d.id;
+    b.innerHTML = `<img alt="" src="assets/${d.id}/000.jpg" loading="lazy"><div><b>Demo ${k+1} · ${d.title}</b><span>${d.sub}</span></div>`;
+    b.onclick = () => select(d.id); tabs.appendChild(b);
+  });
+}
+
+async function select(id){
+  stop();
+  const d = DEMOS.find(x => x.id === id);
+  DEMOS.forEach(x => $("tab-"+x.id).setAttribute("aria-selected", x.id === id ? "true" : "false"));
+  S.demo = d; S.D = await loadDemo(id); S.t = 0;
+  try { localStorage.setItem("marlin-demo", id); } catch(e) {}
+  S.imgs = Array.from({length:S.D.n}, (_, t) => { const im = new Image(); im.src = `assets/${id}/${String(t).padStart(3,"0")}.jpg`; im.onload = () => { if (t === S.t) drawAll(); }; return im; });
+  $("slider").max = S.D.n - 1; $("slider").value = 0;
+  $("desc").textContent = d.desc;
+  buildLegend(); buildGrid(); buildSummary(); setFrame(0);
+}
+
+function buildLegend(){
+  const L = $("legend"); L.innerHTML = "";
+  S.D.classes.forEach((c, i) => {
+    const s = document.createElement("span"); s.className = "item";
+    s.innerHTML = `<span class="sw" style="background:${c.color}"></span>${c.name} <span class="gtn">(${S.D.gt_total[i]} in GT)</span>`;
+    L.appendChild(s);
+  });
+}
+
+// ---------- panels
+function makePanel(m, container, big){
+  const el = document.createElement("div"); el.className = "card panel" + (m.key === "marlin" ? " ours" : "");
+  const err = m.kind === "gt" ? "" : (m.kind === "points" ? `<span class="err">no identities</span>` : `<span class="err">Σ|Δ| <b>${m.err}</b></span>`);
+  el.innerHTML = `<div class="ph"><span class="nm" title="${m.desc}">${m.name}<span class="kind">${KIND[m.kind]}</span></span>${err}</div>
+    <div class="cv" style="aspect-ratio:${S.D.w}/${S.D.h}"><canvas></canvas></div><div class="chips"></div>`;
+  container.appendChild(el);
+  const p = {m, el, cv: el.querySelector("canvas"), chips: el.querySelector(".chips"), big};
+  p.ctx = p.cv.getContext("2d");
+  new ResizeObserver(() => { fit(p); drawPanel(p, performance.now()); }).observe(el.querySelector(".cv"));
+  if (!big) el.onclick = () => openCompare(m.key);
+  return p;
+}
+function fit(p){ const r = p.cv.parentElement.getBoundingClientRect(); const k = dpr(); p.cv.width = Math.max(1, Math.round(r.width*k)); p.cv.height = Math.max(1, Math.round(r.height*k)); }
+function buildGrid(){ const g = $("grid"); g.innerHTML = ""; S.panels = S.D.methods.map(m => makePanel(m, g, false)); }
+
+const patCache = {};
+function stripes(ctx, cols, k){
+  const key = cols.join(",")+"@"+k; if (patCache[key]) return patCache[key];
+  const w = Math.round(5*k), n = Math.max(2, cols.length), c = document.createElement("canvas");
+  c.width = c.height = w*n*2; const x = c.getContext("2d");
+  const seq = cols.length === 1 ? [cols[0], "#ffffff"] : cols;
+  for (let i = -n*4; i < n*4; i++){ x.fillStyle = seq[((i % seq.length)+seq.length) % seq.length]; x.beginPath();
+    x.moveTo(i*w, 0); x.lineTo(i*w+w, 0); x.lineTo(i*w+w+c.height, c.height); x.lineTo(i*w+c.height, c.height); x.closePath(); x.fill(); }
+  return (patCache[key] = ctx.createPattern(c, "repeat"));
+}
+function shapePath(ctx, o, s){
+  if (o.p){ for (const poly of o.p){ ctx.moveTo(poly[0]*s, poly[1]*s); for (let i = 2; i < poly.length; i += 2) ctx.lineTo(poly[i]*s, poly[i+1]*s); ctx.closePath(); } }
+  else { const b = o.b; ctx.rect(b[0]*s, b[1]*s, (b[2]-b[0])*s, (b[3]-b[1])*s); }
+}
+function badge(ctx, x, y, txt, fill, r, flash){
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fillStyle = fill; ctx.fill();
+  ctx.lineWidth = Math.max(1, r*0.16); ctx.strokeStyle = flash ? "#fff" : "rgba(0,0,0,.85)"; ctx.stroke();
+  ctx.fillStyle = (flash || lum(fill) < 0.55) ? "#fff" : "#111";
+  ctx.font = `700 ${Math.round(r*(txt.length > 2 ? 0.95 : 1.15))}px -apple-system,Segoe UI,Roboto,Arial,sans-serif`;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(txt, x, y + r*0.05);
+}
+function dot(ctx, x, y, r, fill, ring){
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fillStyle = fill; ctx.fill();
+  ctx.lineWidth = Math.max(1, r*0.38); ctx.strokeStyle = ring; ctx.stroke();
+}
+function pie(ctx, x, y, r, cols){
+  const n = cols.length;
+  cols.forEach((c, i) => { ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y, r, -Math.PI/2 + i*2*Math.PI/n, -Math.PI/2 + (i+1)*2*Math.PI/n); ctx.closePath(); ctx.fillStyle = c; ctx.fill(); });
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.lineWidth = Math.max(1, r*0.32); ctx.strokeStyle = "#111"; ctx.stroke();
+}
+
+function drawPanel(p, now){
+  const D = S.D, ctx = p.ctx, W = p.cv.width, H = p.cv.height; if (!D || W < 2) return false;
+  const s = W / D.w, k = dpr(), cssW = W / k, img = S.imgs[S.t];
+  ctx.clearRect(0, 0, W, H);
+  if (img && img.complete && img.naturalWidth) ctx.drawImage(img, 0, 0, W, H); else { ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H); }
+  const C = D.classes.map(c => c.color), m = p.m, F = m.frames[S.t] || [];
+  const r = Math.max(6.5, Math.min(13, cssW/42)) * k * (p.big ? 1.25 : 1);
+  const pulse = REDUCE ? 1 : 0.5 + 0.5*Math.sin(now/1000*2*Math.PI*2.2);
+  let flashing = false;
+  if (m.kind === "gt" || m.kind === "points"){
+    const pr = Math.max(3, Math.min(6, cssW/80)) * k * (p.big ? 1.2 : 1);
+    if (m.kind === "gt"){
+      for (const q of F){ dot(ctx, q[2]*s, q[3]*s, pr, C[q[1]], "#fff"); }
+      if (S.ids) for (const q of F){ const x = q[2]*s + pr*1.2, y = q[3]*s - pr*1.2;
+        ctx.font = `700 ${Math.round(pr*2.2)}px -apple-system,Segoe UI,Roboto,Arial,sans-serif`; ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+        ctx.lineWidth = Math.max(2, pr*0.7); ctx.strokeStyle = "rgba(0,0,0,.85)"; ctx.strokeText(String(q[0]), x, y); ctx.fillStyle = C[q[1]]; ctx.fillText(String(q[0]), x, y); }
+    } else {
+      const groups = {};
+      for (const q of F){ if (q[3] >= 0 && S.dup) (groups[q[3]] = groups[q[3]] || []).push(q); else dot(ctx, q[1]*s, q[2]*s, pr, C[q[0]], "#111"); }
+      for (const g in groups){ const L = groups[g]; const x = L.reduce((a, q) => a + q[1], 0)/L.length*s, y = L.reduce((a, q) => a + q[2], 0)/L.length*s;
+        pie(ctx, x, y, pr*1.35, [...new Set(L.map(q => C[q[0]]))]); }
+    }
+  } else {
+    // fills
+    if (S.shapes) for (const o of F){
+      const fl = S.sw && o.s; if (fl) flashing = true;
+      ctx.beginPath(); shapePath(ctx, o, s);
+      ctx.fillStyle = fl ? rgba(RED, 0.25 + 0.45*pulse) : rgba(C[o.c], o.p ? 0.42 : 0.16); ctx.fill("evenodd");
+    }
+    // duplicate groups: stripes in the categories' colours over the members
+    const groups = {};
+    if (S.dup) for (const o of F) if (o.g !== undefined) (groups[o.g] = groups[o.g] || []).push(o);
+    if (S.shapes) for (const g in groups){
+      const L = groups[g], cols = [...new Set(L.map(o => C[o.c]))];
+      ctx.save(); ctx.beginPath(); for (const o of L) shapePath(ctx, o, s); ctx.clip("nonzero");
+      ctx.globalAlpha = 0.72; ctx.fillStyle = stripes(ctx, cols, k); ctx.fillRect(0, 0, W, H); ctx.restore();
+    }
+    // outlines
+    if (S.shapes) for (const o of F){
+      const fl = S.sw && o.s, col = fl ? RED : C[o.c];
+      ctx.beginPath(); shapePath(ctx, o, s);
+      ctx.lineJoin = "round"; ctx.lineWidth = (fl ? 4 : 3)*k; ctx.strokeStyle = "rgba(0,0,0,.55)"; ctx.stroke();
+      ctx.lineWidth = (fl ? 2.4 : 1.6)*k; ctx.strokeStyle = col; ctx.stroke();
+      if (S.dup && o.g !== undefined){ ctx.setLineDash([4*k, 3*k]); ctx.lineWidth = 1.2*k; ctx.strokeStyle = "#fff"; ctx.stroke(); ctx.setLineDash([]); }
+    }
+    // identity badges: each sits on its object; a badge that would cover an earlier one moves to the nearest free
+    // slot, so two claims on one fish end up side by side. Placement is cached per frame and canvas size.
+    if (S.ids){
+      const key = `${S.t}|${W}|${r}`;
+      if (!p.place || p.place.key !== key){
+        const offs = [[0,0],[1,0],[-1,0],[0,-1],[0,1],[1,-1],[-1,-1],[1,1],[-1,1],[2,0],[-2,0]], d2 = (1.85*r)**2, pts = [];
+        const pos = F.map(o => { const x0 = o.l[0]*s, y0 = o.l[1]*s; let at = [x0, y0];
+          for (const [dx, dy] of offs){ const x = x0 + dx*2.05*r, y = y0 + dy*2.05*r;
+            if (pts.every(q => (q[0]-x)**2 + (q[1]-y)**2 >= d2)){ at = [x, y]; break; } }
+          pts.push(at); return at; });
+        p.place = {key, pos};
+      }
+      F.forEach((o, i) => { const fl = S.sw && o.s, [x, y] = p.place.pos[i];
+        badge(ctx, x, y, String(o.i), fl ? RED : C[o.c], fl ? r*(1 + 0.12*pulse) : r, fl); });
+    }
+  }
+  if (S.gtAll && m.kind !== "gt"){
+    const G = D.methods[0].frames[S.t] || [], pr = Math.max(2, Math.min(3.5, cssW/140))*k;
+    for (const q of G){ dot(ctx, q[2]*s, q[3]*s, pr, "#fff", "rgba(0,0,0,.9)"); }
+  }
+  return flashing;
+}
+
+function chips(p){
+  const D = S.D, m = p.m, gt = D.methods[0], t = S.t; const parts = [];
+  D.classes.forEach((c, i) => {
+    let pred, ref;
+    if (m.kind === "gt"){ pred = m.cum[t][i]; parts.push(`<span class="chip"><i style="background:${c.color}"></i><span class="p">${pred}</span></span>`); return; }
+    if (m.kind === "points"){ pred = m.live[t][i]; ref = gt.live[t][i]; } else { pred = m.cum[t][i]; ref = gt.cum[t][i]; }
+    const cls = pred > ref ? "over" : pred < ref ? "under" : "ok";
+    parts.push(`<span class="chip"><i style="background:${c.color}"></i><span class="p ${cls}">${pred}</span><span class="g">/${ref}</span></span>`);
+  });
+  if (m.kind === "points") parts.push(`<span class="chip note">points this frame</span>`);
+  else if (m.kind === "gt") parts.push(`<span class="chip note">individuals so far</span>`);
+  p.chips.innerHTML = parts.join("");
+}
+
+function drawAll(){
+  const now = performance.now(); let fl = false;
+  for (const p of S.panels.concat(S.mpanels)){ p.flash = drawPanel(p, now); fl = p.flash || fl; }
+  S.panels.concat(S.mpanels).forEach(chips);
+  $("fr").textContent = `frame ${S.t+1} / ${S.D.n}`; $("slider").value = S.t;
+  animate(fl);
+}
+// the red pulse only repaints panels that currently show an identity switch
+function animate(on){
+  if (REDUCE) on = false;
+  if (on && !S.raf){ let last = 0; const loop = now => {
+      if (now - last > 40){ last = now; for (const p of S.panels.concat(S.mpanels)) if (p.flash) drawPanel(p, now); }
+      S.raf = S.panels.concat(S.mpanels).some(p => p.flash) ? requestAnimationFrame(loop) : 0; };
+    S.raf = requestAnimationFrame(loop); }
+  if (!on && S.raf){ cancelAnimationFrame(S.raf); S.raf = 0; }
+}
+
+function setFrame(t){ S.t = (t + S.D.n) % S.D.n; drawAll(); }
+function play(){ if (S.playing) return; S.playing = true; $("play").textContent = "Pause";
+  const step = () => { setFrame(S.t + 1); S.timer = setTimeout(step, 1000/(+$("fps").value)); }; S.timer = setTimeout(step, 1000/(+$("fps").value)); }
+function stop(){ S.playing = false; clearTimeout(S.timer); $("play").textContent = "Play"; }
+
+// ---------- summary table
+function buildSummary(){
+  const D = S.D, T = $("summary");
+  const head = `<thead><tr><th>Method</th>${D.classes.map(c => `<th><span class="cdot" style="background:${c.color}"></span>${c.name}</th>`).join("")}<th>Σ|Δ|</th><th>ID switches</th><th>duplicate object-frames</th></tr></thead>`;
+  const rows = D.methods.map(m => {
+    if (m.kind === "gt") return `<tr><td>${m.name}</td>${m.final.map(v => `<td>${v}</td>`).join("")}<td>–</td><td>–</td><td>–</td></tr>`;
+    if (m.kind === "points"){
+      const mean = D.classes.map((c, i) => (m.live.reduce((a, f) => a + f[i], 0)/D.n).toFixed(1));
+      return `<tr><td>${m.name}</td>${mean.map(v => `<td>${v}</td>`).join("")}<td>–</td><td>–</td><td>${m.stats.dup_points}</td></tr>`;
+    }
+    const cells = m.final.map((v, i) => { const g = D.gt_total[i]; const cl = v > g ? "over" : v < g ? "under" : ""; return `<td><span class="${cl}">${v}</span></td>`; }).join("");
+    return `<tr class="${m.key === "marlin" ? "ours" : ""}"><td>${m.name}</td>${cells}<td>${m.err}</td><td>${m.stats.switch_events}</td><td>${m.stats.dup_instances}</td></tr>`;
+  }).join("");
+  T.innerHTML = head + `<tbody>${rows}</tbody>`;
+}
+
+// ---------- compare
+function openCompare(key){
+  const D = S.D; const a = D.methods.find(m => m.key === key);
+  const b = key === "marlin" ? D.methods[0] : D.methods.find(m => m.key === "marlin");
+  $("mtitle").textContent = `${a.name} vs ${b.name}`; const g = $("mgrid"); g.innerHTML = "";
+  S.mpanels = [makePanel(a, g, true), makePanel(b, g, true)];
+  $("modal").classList.add("open"); drawAll();
+}
+function closeCompare(){ $("modal").classList.remove("open"); S.mpanels = []; $("mgrid").innerHTML = ""; }
+
+// ---------- wiring
+$("play").onclick = () => S.playing ? stop() : play();
+$("prev").onclick = () => { stop(); setFrame(S.t - 1); };
+$("next").onclick = () => { stop(); setFrame(S.t + 1); };
+$("slider").oninput = e => { stop(); setFrame(+e.target.value); };
+$("fps").onchange = () => { if (S.playing){ stop(); play(); } };
+[["tShapes","shapes"],["tIds","ids"],["tSwitch","sw"],["tDup","dup"],["tGt","gtAll"]].forEach(([id, k]) => $(id).onchange = e => { S[k] = e.target.checked; drawAll(); });
+$("mclose").onclick = closeCompare;
+$("modal").onclick = e => { if (e.target.id === "modal") closeCompare(); };
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" && e.target.type !== "checkbox" && e.target.type !== "range") return;
+  if (e.key === " "){ e.preventDefault(); S.playing ? stop() : play(); }
+  else if (e.key === "ArrowRight"){ stop(); setFrame(S.t + 1); }
+  else if (e.key === "ArrowLeft"){ stop(); setFrame(S.t - 1); }
+  else if (e.key === "Escape") closeCompare();
+  else if (/^[1-9]$/.test(e.key) && DEMOS[+e.key - 1]) select(DEMOS[+e.key - 1].id);
+});
+buildTabs();
+let start = DEMOS[0].id; try { const v = localStorage.getItem("marlin-demo"); if (DEMOS.some(d => d.id === v)) start = v; } catch(e) {}
+select(start);
+</script>
+</body>
+</html>
