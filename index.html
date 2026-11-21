@@ -7,8 +7,8 @@
   <meta name="description" content="Yiwei Chen (陈奕玮, Jackson) is a PhD candidate in Computer Science and Engineering at HKUST. Marine vision intelligence.">
   <meta name="author" content="Yiwei Chen">
   <meta name="robots" content="index, follow">
-  <meta name="color-scheme" content="light">
-  <meta name="theme-color" content="#f4f0e7">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#0b3a5c">
   <link rel="canonical" href="https://yiweichen.org/">
   <link rel="alternate" hreflang="en" href="https://yiweichen.org/">
   <link rel="alternate" hreflang="zh" href="https://yiweichen.cn/">
@@ -27,8 +27,8 @@
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400;1,9..144,500&family=Outfit:wght@300;400;500&family=Silkscreen&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/site.css?v=4.5">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400;1,9..144,500&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/site.css?v=5.3">
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -55,7 +55,7 @@
 </head>
 <body data-tone="light">
   <canvas id="ocean" aria-hidden="true"></canvas>
-  <canvas id="trail" aria-hidden="true"></canvas>
+  <canvas id="vision" aria-hidden="true"></canvas>
   <a class="skip" href="#about">Skip to content</a>
 
   <header class="top">
@@ -70,28 +70,52 @@
       </nav>
       <div class="top-side">
         <a class="lang-switch" href="https://yiweichen.cn/" hreflang="zh" lang="zh-Hans" title="中文主页 · yiweichen.cn">中文</a>
-        <button class="vision-toggle" id="vision-toggle" type="button" aria-pressed="false" title="Vision mode (V)">
-          <span class="eye" aria-hidden="true"></span><span class="px">Vision</span>
+        <button class="vision-toggle" id="vision-toggle" type="button" aria-pressed="false" title="Vision mode (V): see the sea the way a detector does">
+          <span class="eye" aria-hidden="true"></span><span class="mono">Vision</span>
+        </button>
+        <button class="vision-toggle explore-toggle" id="explore-toggle" type="button" aria-pressed="false" title="Explore (E): hide the page and look around freely">
+          <span class="compass" aria-hidden="true"></span><span class="mono">Explore</span>
         </button>
         <time class="clock" id="clock">
           <span class="clock-time" id="clock-time">--:--:--</span>
-          <span class="clock-zone px" id="clock-zone">HKT</span>
+          <span class="clock-zone mono" id="clock-zone">HKT</span>
         </time>
       </div>
     </div>
   </header>
 
-  <aside class="gauge" id="gauge" aria-label="Depth gauge">
-    <p class="gauge-read px"><span id="depth-num">0</span><small>m</small></p>
-    <p class="gauge-zone px" id="depth-zone">Surface</p>
-    <p class="gauge-atm px" id="depth-atm">1 atm</p>
+  <aside class="gauge" id="gauge" aria-label="Dive computer">
+    <p class="gauge-label mono">Depth</p>
+    <p class="gauge-read"><span id="depth-num">0</span><small>m</small></p>
+    <p class="gauge-zone mono" id="depth-zone">Surface</p>
     <div class="gauge-rail" id="gauge-rail">
       <span class="gauge-sub" id="gauge-sub" aria-hidden="true"></span>
     </div>
+    <dl class="gauge-data mono">
+      <div><dt>Press</dt><dd id="depth-atm">1 atm</dd></div>
+      <div><dt>Temp</dt><dd id="depth-temp">26 °C</dd></div>
+      <div><dt>Light</dt><dd id="depth-light">100 %</dd></div>
+    </dl>
   </aside>
 
+  <div class="viewpad" id="viewpad" aria-label="View controls">
+    <div class="viewpad-pad" id="viewpad-pad" role="slider" tabindex="0" aria-label="Look around: drag, or use the arrow keys" aria-valuetext="Facing forward" title="Drag to look around">
+      <span class="viewpad-ring" id="viewpad-ring" aria-hidden="true"><i></i></span>
+      <span class="viewpad-knob" id="viewpad-knob" aria-hidden="true"></span>
+    </div>
+    <div class="viewpad-btns">
+      <button id="spin-toggle" type="button" aria-pressed="false" title="Start or stop the slow rotation (R)" aria-label="Rotate the view slowly">
+        <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"></path></svg>
+        <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"></path></svg>
+      </button>
+      <button id="look-reset" type="button" title="Back to the default view (double-click the water)" aria-label="Reset the view">
+        <svg class="i-line" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.6-5.9M4 4v5h5"></path></svg>
+      </button>
+    </div>
+  </div>
+
   <div class="dive-tip" id="dive-tip" role="status" aria-live="polite" hidden>
-    <span class="dive-tip-arrow px" id="dive-tip-arrow">▼</span><span class="dive-tip-text" id="dive-tip-text"></span>
+    <span class="dive-tip-arrow" id="dive-tip-arrow" aria-hidden="true">▼</span><span class="dive-tip-text" id="dive-tip-text"></span>
   </div>
 
   <main class="page" id="page">
@@ -99,10 +123,12 @@
       <div class="wrap hero">
         <div class="hero-copy">
           <p class="hello" id="hello">
-            <button class="day-mark" id="day-mark" type="button" aria-label="Change the time of day"><canvas id="hello-mark" width="16" height="16" aria-hidden="true"></canvas></button>
+            <button class="day-mark" id="day-mark" type="button" aria-label="Change the time of day" title="Change the time of day">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle class="orb" cx="12" cy="12" r="4.2"></circle><g class="rays"><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"></path></g></svg>
+            </button>
             <span id="hello-text">Good afternoon</span>
           </p>
-          <p class="kicker px">HKUST · Computer Science and Engineering</p>
+          <p class="kicker mono">HKUST · Computer Science and Engineering</p>
           <h1>Yiwei Chen</h1>
           <p class="topic">Marine Vision Intelligence</p>
           <p class="role">PhD candidate at CSE, The Hong Kong University of Science and Technology.</p>
@@ -113,73 +139,52 @@
             <li><a href="https://www.linkedin.com/in/yiwei-chen-0a36b2317/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9v12"></path><circle cx="6" cy="4.5" r="1.5"></circle><path d="M10 20v-7a4 4 0 0 1 8 0v7"></path><path d="M10 12v8"></path></svg>LinkedIn</a></li>
             <li><a href="https://x.com/_yiweichen" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="solid" d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>X</a></li>
           </ul>
-          <a class="hero-cta" href="https://yiweichen.org/marinechat/" target="_blank" rel="noopener">
-            <span class="hero-cta-tag px">New</span>
+          <a class="hero-cta" href="https://yiweichen.org/marinechat/" target="_blank" rel="noopener" data-horizon>
+            <span class="hero-cta-tag mono">New</span>
             <span class="hero-cta-text"><strong>MarineChat</strong><span class="hero-cta-sub"> · Ask the ocean anything</span></span>
             <span class="hero-cta-arrow" aria-hidden="true">↗</span>
           </a>
         </div>
+
         <div class="portrait-wrap" id="portrait">
-          <canvas class="arcade" id="arcade" aria-hidden="true"></canvas>
-          <canvas class="photo-bubbles" id="photo-bubbles" aria-hidden="true"></canvas>
-          <button class="portrait-frame" id="portrait-frame" type="button" aria-label="Scan the portrait">
+          <button class="portrait-frame" id="portrait-frame" type="button" aria-label="Run the detector on the portrait" aria-pressed="false">
             <img class="portrait" src="assets/bio-photo.jpg" width="645" height="566" alt="Portrait of Yiwei Chen in Hong Kong.">
-            <span class="ghost ghost-r" aria-hidden="true"></span>
-            <span class="ghost ghost-c" aria-hidden="true"></span>
-            <span class="glitch" aria-hidden="true"></span>
-            <span class="burst" aria-hidden="true"></span>
-            <span class="sil" aria-hidden="true"><span></span></span>
-            <span class="flash" aria-hidden="true"></span>
+            <span class="seg-mask" aria-hidden="true"></span>
             <span class="scanline" aria-hidden="true"></span>
+            <span class="det-box" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            <span class="det-tag mono" aria-hidden="true">Yiwei Chen <b>0.99</b></span>
           </button>
-          <p class="who-text px" aria-hidden="true">
-            <span class="who-q">Who's that<br>Human?!</span>
-            <span class="who-a">It's Yiwei!</span>
-          </p>
-          <span class="det-tag px" aria-hidden="true"><span class="det-guess">Human<span class="unsure">..?</span> <b>0.51</b></span><span class="det-known">Yiwei <b>0.99</b></span></span>
+          <p class="portrait-hint mono" aria-hidden="true"><span class="portrait-hint-idle">Click to run the detector</span><span class="portrait-hint-run" id="scan-label">Segmenting…</span></p>
           <div class="scan-card" aria-hidden="true">
-            <div class="scan-progress">
-              <p class="px"><span id="scan-label">Analyzing silhouette</span><span id="scan-pct">000%</span></p>
-              <div class="scan-bar"><i id="scan-bar"></i></div>
-            </div>
-            <div class="scan-result">
-              <p class="scan-title px"><span class="dex-no">No.001</span> Yiwei Chen <small>陈奕玮</small></p>
-              <p class="dex-types px"><span class="type water">Water</span><span class="type vision">Vision</span></p>
-              <dl>
-                <div style="--i:0"><dt>Class</dt><dd>Human, confirmed <em>0.99</em></dd></div>
-                <div style="--i:1"><dt>Role</dt><dd>PhD candidate · HKUST CSE</dd></div>
-                <div style="--i:2"><dt>Moves</dt><dd>Segmentation · Recognition</dd></div>
-                <div style="--i:3"><dt>Habitat</dt><dd>Hong Kong · sunlit zone</dd></div>
-                <div style="--i:4"><dt>Ability</dt><dd class="ok">Friendly. Loves the sea.</dd></div>
-              </dl>
-            </div>
+            <p class="scan-title"><span class="mono">Instance 001</span> Yiwei Chen <small>陈奕玮</small></p>
+            <dl>
+              <div style="--i:0"><dt>Class</dt><dd>Person <em>0.99</em></dd></div>
+              <div style="--i:1"><dt>Role</dt><dd>PhD candidate · HKUST CSE</dd></div>
+              <div style="--i:2"><dt>Works on</dt><dd>Segmentation · Recognition</dd></div>
+              <div style="--i:3"><dt>Habitat</dt><dd>Hong Kong · sunlit zone</dd></div>
+            </dl>
           </div>
         </div>
       </div>
 
-      <div class="wrap">
-        <p class="lining">
-          <canvas class="rainbow" id="rainbow" aria-hidden="true"></canvas>
-          <span>&ldquo;Every Cloud Has a Silver Lining.&rdquo;</span>
-        </p>
-        <button class="weather-tag" id="weather-tag" type="button">
-          <canvas id="weather-icon" width="9" height="9" aria-hidden="true"></canvas>
-          <span class="px" id="weather-text">Hong Kong</span>
+      <div class="wrap hero-foot">
+        <p class="lining"><span>&ldquo;Every Cloud Has a Silver Lining.&rdquo;</span></p>
+        <button class="weather-tag" id="weather-tag" type="button" title="Live weather in Hong Kong. Click to try other skies.">
+          <span class="weather-dot" id="weather-dot" aria-hidden="true"></span>
+          <span class="mono" id="weather-text">Hong Kong</span>
         </button>
       </div>
 
-      <div class="surface-band">
-        <a class="dive px" href="#about"><span aria-hidden="true">▼</span> Dive</a>
-      </div>
+      <a class="dive mono" href="#about"><span>Dive</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v15M6 13l6 6 6-6"></path></svg></a>
     </section>
 
-    <section class="zone zone-sunlit" id="about" data-tone="light">
+    <section class="zone zone-sunlit" id="about" data-tone="dark">
       <div class="stage" aria-hidden="true"></div>
       <div class="wrap zone-grid">
         <header class="zone-head">
-          <p class="zone-no px">01</p>
+          <p class="zone-no mono">01</p>
           <h2>About</h2>
-          <p class="zone-meta px">Sunlit zone<span class="sep"> · </span><br>0 – 200 m</p>
+          <p class="zone-meta mono">Sunlit zone<span class="sep"> · </span><br>0 – 200 m</p>
         </header>
         <div class="zone-body prose">
           <p>I am Yiwei Chen, also Jackson, a third-year PhD candidate in the Department of Computer Science and Engineering at The Hong Kong University of Science and Technology.</p>
@@ -189,9 +194,9 @@
       </div>
       <div class="wrap zone-grid" id="projects">
         <header class="zone-head">
-          <p class="zone-no px">02</p>
+          <p class="zone-no mono">02</p>
           <h2>Projects</h2>
-          <p class="zone-meta px">Sunlit zone<span class="sep"> · </span><br>Live on the web</p>
+          <p class="zone-meta mono">Sunlit zone<span class="sep"> · </span><br>Live on the web</p>
         </header>
         <div class="zone-body">
           <article class="project">
@@ -200,55 +205,54 @@
               <span class="project-scan"></span>
             </a>
             <div class="project-copy">
-              <p class="venue px"><span class="live-dot" aria-hidden="true"></span>Live · Web app · 2026</p>
+              <p class="venue mono"><span class="live-dot" aria-hidden="true"></span>Live · Web app · 2026</p>
               <h3><a href="https://yiweichen.org/marinechat/" target="_blank" rel="noopener">MarineChat</a></h3>
               <p class="project-tagline">Ask the ocean anything.</p>
               <p class="project-text">Drop in an underwater photo: MarineChat finds every creature, describes each one and answers your questions. Built on MarineInst.</p>
-              <ul class="project-tags px" aria-label="Features">
+              <ul class="project-tags mono" aria-label="Features">
                 <li>Instance segmentation</li>
                 <li>Captions</li>
                 <li>Species Q&amp;A</li>
                 <li>Annotation export</li>
               </ul>
-              <a class="project-cta px" href="https://yiweichen.org/marinechat/" target="_blank" rel="noopener">Try MarineChat <span aria-hidden="true">↗</span></a>
+              <a class="project-cta mono" href="https://yiweichen.org/marinechat/" target="_blank" rel="noopener">Try MarineChat <span aria-hidden="true">↗</span></a>
             </div>
           </article>
         </div>
       </div>
-      <div class="shelf" aria-hidden="true"></div>
     </section>
 
     <section class="zone zone-twilight" id="publications" data-tone="dark">
       <div class="stage" aria-hidden="true"></div>
       <div class="wrap zone-grid">
         <header class="zone-head">
-          <p class="zone-no px">03</p>
+          <p class="zone-no mono">03</p>
           <h2>Publications</h2>
-          <p class="zone-meta px">Twilight zone<span class="sep"> · </span><br>200 – 1,000 m</p>
+          <p class="zone-meta mono">Twilight zone<span class="sep"> · </span><br>200 – 1,000 m</p>
         </header>
         <div class="zone-body">
           <article class="pub">
-            <p class="venue px">RA-L · 2026</p>
+            <p class="venue mono">RA-L · 2026</p>
             <h3>MaskGuide: Efficient Distillation for Deployable Lightweight Segmentation in Marine Environments</h3>
             <p class="authors">Xinrui Wu, Ziqiang Zheng, <span class="me">Yiwei Chen*</span>, Zeyu Ma, Yang Yang, Sai-Kit Yeung</p>
           </article>
 
           <article class="pub">
-            <p class="venue px">WACV · 2026</p>
+            <p class="venue mono">WACV · 2026</p>
             <h3><a href="https://arxiv.org/pdf/2512.21150" target="_blank" rel="noopener noreferrer">ORCA: Object Recognition and Comprehension for Archiving Marine Species</a></h3>
             <p class="authors">Yuk-Kwan Wong, Haixin Liang, Zeyu Ma, <span class="me">Yiwei Chen*</span>, Ziqiang Zheng, Rinaldi Gotama, Pascal Sebastian, Lauren D. Sparks, Sai-Kit Yeung</p>
-            <p class="flags"><strong class="px">Oral</strong></p>
+            <p class="flags"><strong class="mono">Oral</strong></p>
           </article>
 
           <article class="pub">
-            <p class="venue px">ECCV · 2024</p>
+            <p class="venue mono">ECCV · 2024</p>
             <h3><a href="https://www.ecva.net/papers/eccv_2024/papers_ECCV/papers/00223.pdf" target="_blank" rel="noopener noreferrer">MarineInst: A foundation model for marine image analysis with instance visual description</a></h3>
             <p class="authors">Ziqiang Zheng, <span class="me">Yiwei Chen*</span>, Huimin Zeng, Tuan-Anh Vu, Binh-Son Hua, Sai-Kit Yeung</p>
-            <p class="flags"><strong class="px">Oral</strong><strong class="px">Oral Presentation Award</strong></p>
+            <p class="flags"><strong class="mono">Oral</strong><strong class="mono">Oral Presentation Award</strong></p>
           </article>
 
           <article class="pub">
-            <p class="venue px">arXiv · 2024</p>
+            <p class="venue mono">arXiv · 2024</p>
             <h3><a href="https://arxiv.org/pdf/2401.02147" target="_blank" rel="noopener noreferrer">Exploring boundary of GPT-4V on marine analysis: A preliminary case study</a></h3>
             <p class="authors">Ziqiang Zheng, <span class="me">Yiwei Chen*</span>, Jipeng Zhang, Tuan-Anh Vu, Huimin Zeng, Yue Him Wong Tim, Sai-Kit Yeung</p>
           </article>
@@ -260,19 +264,19 @@
       <div class="stage" aria-hidden="true"></div>
       <div class="wrap zone-grid">
         <header class="zone-head">
-          <p class="zone-no px">04</p>
+          <p class="zone-no mono">04</p>
           <h2>News</h2>
-          <p class="zone-meta px">Midnight zone<span class="sep"> · </span><br>1,000 – 4,000 m</p>
+          <p class="zone-meta mono">Midnight zone<span class="sep"> · </span><br>1,000 – 4,000 m</p>
         </header>
         <div class="zone-body">
           <ol class="news">
-            <li><time class="px" datetime="2026-10">2026.10</time><span>Launched <a href="https://yiweichen.org/marinechat/" target="_blank" rel="noopener">MarineChat</a>, a public web app built on MarineInst.</span></li>
-            <li><time class="px" datetime="2026-10">2026.10</time><span>Recognized as a Top Reviewer at NeurIPS 2026.</span></li>
-            <li><time class="px" datetime="2026-03">2026.03</time><span>MaskGuide accepted at RA-L.</span></li>
-            <li><time class="px" datetime="2025-12">2025.12</time><span>ORCA accepted at WACV 2026, as an oral.</span></li>
-            <li><time class="px" datetime="2024-09">2024.09</time><span>Started the PhD at HKUST.</span></li>
-            <li><time class="px" datetime="2024-08">2024.08</time><span>MarineInst received an Oral Presentation Award at ECCV 2024.</span></li>
-            <li><time class="px" datetime="2024-07">2024.07</time><span>MarineInst accepted at ECCV 2024.</span></li>
+            <li><time class="mono" datetime="2026-10">2026.10</time><span>Launched <a href="https://yiweichen.org/marinechat/" target="_blank" rel="noopener">MarineChat</a>, a public web app built on MarineInst.</span></li>
+            <li><time class="mono" datetime="2026-10">2026.10</time><span>Recognized as a Top Reviewer at NeurIPS 2026.</span></li>
+            <li><time class="mono" datetime="2026-03">2026.03</time><span>MaskGuide accepted at RA-L.</span></li>
+            <li><time class="mono" datetime="2025-12">2025.12</time><span>ORCA accepted at WACV 2026, as an oral.</span></li>
+            <li><time class="mono" datetime="2024-09">2024.09</time><span>Started the PhD at HKUST.</span></li>
+            <li><time class="mono" datetime="2024-08">2024.08</time><span>MarineInst received an Oral Presentation Award at ECCV 2024.</span></li>
+            <li><time class="mono" datetime="2024-07">2024.07</time><span>MarineInst accepted at ECCV 2024.</span></li>
           </ol>
         </div>
       </div>
@@ -282,12 +286,12 @@
       <div class="stage" aria-hidden="true"></div>
       <div class="wrap zone-grid">
         <header class="zone-head">
-          <p class="zone-no px">05</p>
+          <p class="zone-no mono">05</p>
           <h2>Experience</h2>
-          <p class="zone-meta px">Abyssal zone<span class="sep"> · </span><br>4,000 m +</p>
+          <p class="zone-meta mono">Abyssal zone<span class="sep"> · </span><br>4,000 m +</p>
         </header>
         <div class="zone-body">
-          <p class="label px">Education</p>
+          <p class="label mono">Education</p>
           <div class="rows">
             <div class="row">
               <p>PhD, Computer Science and Engineering<br><span class="sub">The Hong Kong University of Science and Technology</span></p>
@@ -304,19 +308,19 @@
           </div>
           <p class="note">As an undergraduate at the School of Electronic Information and Communications, HUST, I joined Prof. <a href="https://english.eic.hust.edu.cn/info/1017/1124.htm" target="_blank" rel="noopener noreferrer">Xiaojun Hei</a>’s innovation program and completed my final-year project with Prof. <a href="https://xwcv.github.io/" target="_blank" rel="noopener noreferrer">Xinggang Wang</a>.</p>
 
-          <p class="label px">Teaching</p>
+          <p class="label mono">Teaching</p>
           <div class="rows">
             <div class="row"><p>COMP 2211 Exploring Artificial Intelligence</p><span class="when">Spring 2025</span></div>
             <div class="row"><p>COMP 2211 Exploring Artificial Intelligence</p><span class="when">Fall 2025</span></div>
             <div class="row"><p>MSBD 6000Q Vision Language Models for Vision Tasks</p><span class="when">Fall 2025</span></div>
           </div>
 
-          <p class="label px">Visiting</p>
+          <p class="label mono">Visiting</p>
           <div class="rows">
             <div class="row"><p>Visiting student, UESTC, Chengdu</p><span class="when">Aug – Nov 2026</span></div>
           </div>
 
-          <p class="label px">Awards</p>
+          <p class="label mono">Awards</p>
           <div class="rows">
             <div class="row"><p>Top Reviewer, NeurIPS 2026</p><span class="when">2026</span></div>
             <div class="row"><p>Outstanding PG Teaching Assistant Honorable Mention<br><span class="sub">Department of Computer Science and Engineering, HKUST</span></p><span class="when">2025 – 26</span></div>
@@ -331,28 +335,28 @@
       <footer class="foot">
         <div class="wrap foot-inner">
           <div>
-            <p class="foot-mark px">Seafloor reached</p>
+            <p class="foot-mark mono">Seafloor · 4,800 m</p>
             <p>© 2026 Yiwei Chen · HKUST</p>
           </div>
           <div class="foot-hints">
-            <p class="hint">Every creature is alive: drag it anywhere, or click it to talk. Pop bubbles, poke clouds, brush the plankton, and switch on Vision (the eye up top, or <kbd class="px">V</kbd>) to see the sea the way a detector does.</p>
-            <p class="hint">Creature replies come from free models via <a href="https://llm7.io" target="_blank" rel="noopener noreferrer">LLM7</a> or <a href="https://pollinations.ai" target="_blank" rel="noopener noreferrer">Pollinations</a>, then DeepSeek, with offline answers as a last resort.</p>
+            <p class="hint">The water is live, and it is all around you: drag to look in any direction (or use the view pad in the corner). The scene also turns slowly on its own: rest the pointer on the right edge to hurry it, or on the left edge to turn it back, or press Explore (<kbd class="mono">E</kbd>) to clear the page and swim through it. Your pointer carries a torch into the dark; fish part around it and plankton light up. Drag an animal to move it, click one to talk with it, and switch on Vision (the eye up top, or <kbd class="mono">V</kbd>) to see the sea the way a detector does.</p>
+            <p class="hint">Replies come from free models via <a href="https://llm7.io" target="_blank" rel="noopener noreferrer">LLM7</a> or <a href="https://pollinations.ai" target="_blank" rel="noopener noreferrer">Pollinations</a>, then DeepSeek, with offline answers as a last resort.</p>
           </div>
-          <a class="resurface px" href="#top"><span aria-hidden="true">▲</span> Surface</a>
+          <a class="resurface mono" href="#top"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V5M6 11l6-6 6 6"></path></svg> Surface</a>
         </div>
       </footer>
-      <div class="floor-band">
-        <div class="mission" id="mission" aria-live="polite">
-          <p class="mission-title">Mission success!</p>
-          <p class="mission-sub px" id="mission-sub">Seafloor reached · 4,800 m</p>
-        </div>
-      </div>
+      <div class="floor-band" aria-hidden="true"></div>
     </section>
   </main>
 
-  <div id="reef"></div>
+  <div id="hud"></div>
 
-  <script src="js/sprites.js?v=4.5"></script>
-  <script src="js/scene.js?v=4.5"></script>
+  <script src="js/vendor/three.min.js?v=160"></script>
+  <script src="js/ocean.js?v=5.3"></script>
+  <script src="js/kit.js?v=5.3"></script>
+  <script src="js/data.js?v=5.3"></script>
+  <script src="js/reef.js?v=5.3"></script>
+  <script src="js/life.js?v=5.3"></script>
+  <script src="js/ui.js?v=5.3"></script>
 </body>
 </html>
