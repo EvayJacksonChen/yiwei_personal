@@ -17,7 +17,7 @@
   function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
 
   const FACTS = [
-    "Yiwei Chen (陈奕玮), also called Jackson, is a third-year PhD student in the Department of Computer Science and Engineering at The Hong Kong University of Science and Technology (HKUST), Hong Kong SAR.",
+    "Yiwei Chen (陈奕玮), also called Jackson, is a third-year PhD candidate in the Department of Computer Science and Engineering at The Hong Kong University of Science and Technology (HKUST), Hong Kong SAR.",
     "He studies marine vision intelligence: computer vision for marine and biology research, including recognition and the boundary between 2D and 3D vision.",
     "He works closely with Prof. Ziqiang Zheng (UESTC) and is supervised by Prof. Sai-Kit Yeung.",
     "Education: PhD in CSE at HKUST, 2024–present; MSc in Information Technology at HKUST, 2023–2024; BEng in Telecommunications at Huazhong University of Science and Technology, 2019–2023. His undergraduate innovation program was with Prof. Xiaojun Hei, and his final-year project was with Prof. Xinggang Wang.",
@@ -3090,8 +3090,8 @@
       en: "He builds computer vision for marine and biology studies: recognising sea life, and the problems that sit between 2D and 3D vision.",
       zh: "他研究海洋与生物方向的计算机视觉：识别海洋生物，以及介于二维和三维视觉之间的问题。" },
     { re: /yiwei|jackson|page owner|this (page|site|website)|who (is|made|built|owns) (this|he|him)|陈奕玮|奕玮|网站|主页|他是谁/i,
-      en: "This is Yiwei Chen's page. He's a third-year PhD student in Computer Science and Engineering at HKUST, working on marine vision intelligence.",
-      zh: "这是陈奕玮的主页。他是香港科技大学计算机科学与工程系的三年级博士生，研究海洋视觉智能。" }
+      en: "This is Yiwei Chen's page. He's a third-year PhD candidate in Computer Science and Engineering at HKUST, working on marine vision intelligence.",
+      zh: "这是陈奕玮的主页。他是香港科技大学计算机科学与工程系的三年级博士候选人，研究海洋视觉智能。" }
   ];
 
   const STOP = /^(you|your|yours|the|and|how|what|why|who|are|does|did|can|could|would|tell|about|with|this|that|there|here|have|has|for|from|into|its|it's|whats|what's)$/;
