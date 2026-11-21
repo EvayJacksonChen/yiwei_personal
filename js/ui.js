@@ -14,27 +14,35 @@
   function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
 
   const COARSE = window.matchMedia("(pointer: coarse)").matches;
-  const visitorZh = String((navigator.languages && navigator.languages[0]) || navigator.language || "en").toLowerCase().indexOf("zh") === 0;
+  const t = D.t || function (en) { return en; };
+  const visitorZh = !!D.zh || String((navigator.languages && navigator.languages[0]) || navigator.language || "en").toLowerCase().indexOf("zh") === 0;
 
   const ZONES = [
-    { id: "top", name: "Surface", place: "sea surface", m: 0 },
-    { id: "about", name: "Sunlit zone", place: "sunlit zone", m: 8 },
-    { id: "publications", name: "Twilight zone", place: "twilight zone", m: 200 },
-    { id: "news", name: "Midnight zone", place: "midnight zone", m: 1000 },
-    { id: "experience", name: "Abyssal zone", place: "abyssal zone", m: 4000 }
+    { id: "top", name: t("Surface", "海面"), place: "sea surface", m: 0 },
+    { id: "about", name: t("Sunlit zone", "透光层"), place: "sunlit zone", m: 8 },
+    { id: "publications", name: t("Twilight zone", "微光层"), place: "twilight zone", m: 200 },
+    { id: "news", name: t("Midnight zone", "午夜层"), place: "midnight zone", m: 1000 },
+    { id: "experience", name: t("Abyssal zone", "深渊层"), place: "abyssal zone", m: 4000 }
   ];
   const TIPS = {
-    top: { up: "Surface · 1 atm, breathe!" },
-    about: { down: "Sunlit zone · most ocean life lives here", up: "Back in the sunlit zone" },
-    publications: { down: "200 m · Twilight: red light is gone", up: "Rising into the twilight" },
-    news: { down: "1,000 m · Midnight: only animal light", up: "Leaving the midnight zone" },
-    experience: { down: "4,000 m · Abyss: 400× surface pressure" }
+    top: { up: t("Surface · 1 atm, breathe!", "海面 · 1 个大气压，深呼吸！") },
+    about: { down: t("Sunlit zone · most ocean life lives here", "透光层 · 绝大多数海洋生物生活在这里"), up: t("Back in the sunlit zone", "回到透光层了") },
+    publications: { down: t("200 m · Twilight: red light is gone", "200 米 · 微光层：红光消失了"), up: t("Rising into the twilight", "上升到微光层") },
+    news: { down: t("1,000 m · Midnight: only animal light", "1,000 米 · 午夜层：只有动物发出的光"), up: t("Leaving the midnight zone", "离开午夜层") },
+    experience: { down: t("4,000 m · Abyss: 400× surface pressure", "4,000 米 · 深渊：水压是海面的 400 倍") }
   };
+  // names a detector would print, for the Chinese page
+  const NAMES_ZH = {
+    "Staghorn coral": "鹿角珊瑚", "Table coral": "桌形珊瑚", "Brain coral": "脑珊瑚", "Sea fan": "海扇", "Barrel sponge": "桶状海绵", "Sea whip": "海鞭", "Soft coral": "软珊瑚",
+    "Hydrothermal vent": "热液喷口", "Giant tube worms": "巨型管虫", "Whale fall": "鲸落", "Dive boat": "潜水船", "Reef manta ray": "珊瑚礁蝠鲼",
+    "Blue-green chromis": "蓝绿光鳃鱼", "Yellowback fusilier": "黄背梅鲷", "Sea goldie": "丝鳍拟花鮨", "Lanternfish": "灯笼鱼", "Bigeye trevally": "六带鲹"
+  };
+  function named(label) { return (D.zh && NAMES_ZH[label]) || label; }
 
   /* ---------- clock and greeting ---------- */
 
   const PARTS = ["morning", "afternoon", "evening", "night"];
-  const GREET = { morning: "Good morning", afternoon: "Good afternoon", evening: "Good evening", night: "Good night" };
+  const GREET = D.zh ? { morning: "早上好", afternoon: "下午好", evening: "傍晚好", night: "晚安" } : { morning: "Good morning", afternoon: "Good afternoon", evening: "Good evening", night: "Good night" };
   function partOfDay(h) { return h >= 5 && h < 11 ? "morning" : h >= 11 && h < 17 ? "afternoon" : h >= 17 && h < 20 ? "evening" : "night"; }
 
   let part = partOfDay(new Date().getHours());
@@ -81,12 +89,12 @@
   /* ---------- live weather over Hong Kong shapes the sky and the swell ---------- */
 
   const KINDS = {
-    clear: { label: "clear", cloud: 0.18, wave: 0.9 },
-    partly: { label: "partly cloudy", cloud: 0.42, wave: 1 },
-    overcast: { label: "overcast", cloud: 0.86, wave: 1.1 },
-    fog: { label: "fog", cloud: 0.94, wave: 0.8 },
-    rain: { label: "rain", cloud: 0.95, wave: 1.35 },
-    storm: { label: "thunderstorm", cloud: 1, wave: 1.8 }
+    clear: { label: t("clear", "晴"), en: "clear", cloud: 0.18, wave: 0.9 },
+    partly: { label: t("partly cloudy", "局部多云"), en: "partly cloudy", cloud: 0.42, wave: 1 },
+    overcast: { label: t("overcast", "阴"), en: "overcast", cloud: 0.86, wave: 1.1 },
+    fog: { label: t("fog", "雾"), en: "fog", cloud: 0.94, wave: 0.8 },
+    rain: { label: t("rain", "雨"), en: "rain", cloud: 0.95, wave: 1.35 },
+    storm: { label: t("thunderstorm", "雷暴"), en: "thunderstorm", cloud: 1, wave: 1.8 }
   };
   const KIND_ORDER = ["clear", "partly", "overcast", "rain", "storm"];
   const weather = { kind: "partly", live: null, temp: null, text: "" };
@@ -95,9 +103,9 @@
     weather.kind = kind;
     const k = KINDS[kind];
     const tag = $("weather-tag"), text = $("weather-text");
-    weather.text = k.label;
+    weather.text = k.en;
     if (tag) tag.dataset.kind = part === "night" && kind === "clear" ? "night" : kind;
-    if (text) text.textContent = "Hong Kong" + (temp != null ? " · " + Math.round(temp) + "°C" : "") + " · " + k.label + (live ? "" : " (preview)");
+    if (text) text.textContent = t("Hong Kong", "香港") + (temp != null ? " · " + Math.round(temp) + "°C" : "") + " · " + k.label + (live ? "" : t(" (preview)", "（预览）"));
     if (GL) D.setWeather(k.cloud, k.wave);
   }
   showWeather("partly", null, true);
@@ -188,7 +196,7 @@
       b.className = "gauge-tick";
       b.style.top = (i / (ZONES.length)) * 100 + "%";
       b.dataset.label = z.name;
-      b.setAttribute("aria-label", "Go to " + z.name);
+      b.setAttribute("aria-label", t("Go to ", "前往") + z.name);
       b.addEventListener("click", function () { const el = $(z.id); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); });
       gauge.rail.appendChild(b);
     });
@@ -235,7 +243,7 @@
     if (gauge.num && text !== lastNum) {
       lastNum = text;
       gauge.num.textContent = text;
-      const zname = m < 1 ? "Surface" : m < 200 ? "Sunlit zone" : m < 1000 ? "Twilight zone" : m < 4000 ? "Midnight zone" : "Abyssal zone";
+      const zname = ZONES[m < 1 ? 0 : m < 200 ? 1 : m < 1000 ? 2 : m < 4000 ? 3 : 4].name;
       gauge.zone.textContent = zname;
       gauge.atm.textContent = (m < 95 ? (1 + m / 10).toFixed(1) : Math.round(1 + m / 10).toLocaleString("en-US")) + " atm";
       gauge.temp.textContent = seaTemp(m).toFixed(1) + " °C";
@@ -267,7 +275,7 @@
       }
       wrap.classList.add("scanning");
       btn.setAttribute("aria-pressed", "true");
-      if (label) label.textContent = "Segmenting…";
+      if (label) label.textContent = t("Segmenting…", "正在分割…");
       timer = window.setTimeout(function () {
         wrap.classList.remove("scanning");
         wrap.classList.add("scanned");
@@ -360,7 +368,7 @@
 
   const pv = { x: 0, y: 0, z: 0, behind: false };
   const tmp3 = new window.THREE.Vector3();
-  function drawVision(t) {
+  function drawVision(now) {
     vx.setTransform(visionDpr, 0, 0, visionDpr, 0, 0);
     vx.clearRect(0, 0, S.vw, S.vh);
     const a = S.vision;
@@ -380,7 +388,7 @@
         D.project(tmp3, pv);
         if (pv.behind || pv.x < 0 || pv.x > S.vw || pv.y < 60 || pv.y > S.vh) continue;
         const r = Math.max(5, (s.fishLen * 0.62 * focal) / dist);
-        bracket(pv.x - r, pv.y - r * 0.62, pv.x + r, pv.y + r * 0.62, s.mask, shown === 0 ? s.label + " " + (0.9 + 0.05 * Math.sin(t + i)).toFixed(2) : "", a * 0.9);
+        bracket(pv.x - r, pv.y - r * 0.62, pv.x + r, pv.y + r * 0.62, s.mask, shown === 0 ? named(s.label) + " " + (0.9 + 0.05 * Math.sin(now + i)).toFixed(2) : "", a * 0.9);
         shown++; count++;
       }
     });
@@ -391,20 +399,20 @@
       if (pv.behind) return;
       const r = (d.r * focal) / dist;
       if (pv.x + r < 0 || pv.x - r > S.vw || pv.y + r < 60 || pv.y - r > S.vh || r < 9) return;
-      bracket(pv.x - r, pv.y - r * d.k, pv.x + r, pv.y + r * d.k, d.col, d.label + " " + (d.conf + 0.015 * Math.sin(t * 0.7 + i)).toFixed(2), a * 0.75);
+      bracket(pv.x - r, pv.y - r * d.k, pv.x + r, pv.y + r * d.k, d.col, named(d.label) + " " + (d.conf + 0.015 * Math.sin(now * 0.7 + i)).toFixed(2), a * 0.75);
       count++;
     });
     D.creatures.forEach(function (c, i) {
       const r = c.rect;
       if (!r.ok || c.school) return;
-      const conf = (parseFloat(c.spec.conf) + 0.012 * Math.sin(t * 0.9 + i * 2.1)).toFixed(2);
+      const conf = (parseFloat(c.spec.conf) + 0.012 * Math.sin(now * 0.9 + i * 2.1)).toFixed(2);
       bracket(r.l - 6, r.t - 6, r.r + 6, r.b + 6, c.maskHex, c.spec.common + " " + conf, a);
       count++;
     });
     // a quiet status line, bottom left
     vx.globalAlpha = a * 0.85;
     vx.fillStyle = "#5ff0d8";
-    vx.fillText("VISION · " + count + " INSTANCE" + (count === 1 ? "" : "S") + " · " + Math.round(S.depthM).toLocaleString("en-US") + " M", 18, S.vh - 18);
+    vx.fillText(D.zh ? "视觉 · " + count + " 个实例 · " + Math.round(S.depthM).toLocaleString("en-US") + " 米" : "VISION · " + count + " INSTANCE" + (count === 1 ? "" : "S") + " · " + Math.round(S.depthM).toLocaleString("en-US") + " M", 120, S.vh - 18);
     vx.globalAlpha = 1;
   }
 
@@ -427,7 +435,7 @@
     if (c) {
       c.hover = true;
       const lat = latinHtml(c.spec.latin);
-      who.innerHTML = "<b>" + c.spec.name + "</b><span>" + c.spec.common + "</span><small>" + (lat ? lat + " · " : "") + (COARSE ? "tap to talk" : "click to talk") + "</small>";
+      who.innerHTML = "<b>" + c.spec.name + "</b><span>" + c.spec.common + "</span><small>" + (lat ? lat + " · " : "") + (COARSE ? t("tap to talk", "轻点聊天") : t("click to talk", "点击聊天")) + "</small>";
     }
     who.classList.toggle("show", !!c);
   }
@@ -469,16 +477,16 @@
       '<div class="chat-head">' +
         '<canvas class="chat-avatar" width="116" height="116" aria-hidden="true"></canvas>' +
         '<div class="chat-who"><p class="chat-name"></p><p class="chat-meta"></p></div>' +
-        '<button class="chat-close" type="button" aria-label="Close">✕</button>' +
+        '<button class="chat-close" type="button" aria-label="' + t("Close", "关闭") + '">✕</button>' +
       "</div>" +
       '<ol class="chat-log" aria-live="polite"></ol>' +
       '<div class="chat-chips"></div>' +
       '<form class="chat-say">' +
-        '<label class="sr" for="chat-input">Say something</label>' +
+        '<label class="sr" for="chat-input">' + t("Say something", "说点什么") + '</label>' +
         '<input id="chat-input" type="text" maxlength="240" autocomplete="off" enterkeyhint="send">' +
-        '<button type="submit">Send</button>' +
+        '<button type="submit">' + t("Send", "发送") + '</button>' +
       "</form>" +
-      '<p class="chat-via">Replies via a free model · LLM7</p>';
+      '<p class="chat-via">' + t("Replies via a free model · LLM7", "回复来自免费模型 · LLM7") + '</p>';
     hud.appendChild(panel);
     const avatar = panel.querySelector(".chat-avatar");
     const ax = avatar.getContext("2d");
@@ -530,7 +538,7 @@
       if (busy.get(c.id)) {
         const li = doc.createElement("li");
         li.className = "them typing";
-        li.setAttribute("aria-label", c.spec.name + " is typing");
+        li.setAttribute("aria-label", c.spec.name + t(" is typing", " 正在输入"));
         li.innerHTML = "<span></span><span></span><span></span>";
         log.appendChild(li);
       }
@@ -570,12 +578,12 @@
       c.talking = true;
       nameEl.textContent = c.spec.name;
       const lat = latinHtml(c.spec.latin);
-      const depth = c.pos.y < -0.5 ? Math.round(D.metresAt(c.pos.y)).toLocaleString("en-US") + " m" : "surface";
+      const depth = c.pos.y < -0.5 ? Math.round(D.metresAt(c.pos.y)).toLocaleString("en-US") + t(" m", " 米") : t("surface", "海面");
       metaEl.innerHTML = c.spec.common + (lat ? " · " + lat : "") + " · " + depth;
-      panel.setAttribute("aria-label", "Chat with " + c.spec.name);
-      label.textContent = "Say something to " + c.spec.name;
+      panel.setAttribute("aria-label", D.zh ? "和 " + c.spec.name + " 聊天" : "Chat with " + c.spec.name);
+      label.textContent = D.zh ? "对 " + c.spec.name + " 说点什么" : "Say something to " + c.spec.name;
       input.placeholder = visitorZh ? "和 " + c.spec.name + " 说点什么" : "Say something to " + c.spec.name;
-      via.textContent = "Replies via a free model · LLM7";
+      via.textContent = t("Replies via a free model · LLM7", "回复来自免费模型 · LLM7");
       panel.hidden = false;
       render();
       api.place();
@@ -633,7 +641,7 @@
       busy.set(c.id, false);
       h.push({ role: "assistant", content: answer });
       if (api.current === c) {
-        via.textContent = source ? "Replied via " + source : "Offline reply · the models are resting";
+        via.textContent = source ? t("Replied via ", "回复来自 ") + source : t("Offline reply · the models are resting", "离线回复 · 模型正在休息");
         render();
       }
     }
@@ -669,9 +677,9 @@
   /* ---------- hands on: look around, move an animal, or click one to talk ---------- */
 
   const DROP = {
-    same: ["Wheee!", "Thanks for the lift.", "Nice spot.", "Again! Again!"],
-    deeper: ["Too dark down here…", "Brr. Heading back up.", "Wrong depth, friend."],
-    shallower: ["Too bright up here!", "My eyes! Back down I go.", "The pressure's all wrong."]
+    same: D.zh ? ["呜——！", "谢啦，搭了个便车。", "这地方不错。", "再来一次！再来一次！"] : ["Wheee!", "Thanks for the lift.", "Nice spot.", "Again! Again!"],
+    deeper: D.zh ? ["下面太黑了……", "嘶，我先回去了。", "朋友，深度不对。"] : ["Too dark down here…", "Brr. Heading back up.", "Wrong depth, friend."],
+    shallower: D.zh ? ["上面太亮了！", "晃瞎眼了！我回去了。", "水压完全不对。"] : ["Too bright up here!", "My eyes! Back down I go.", "The pressure's all wrong."]
   };
   const quip = doc.createElement("div");
   quip.className = "quip";
@@ -687,7 +695,9 @@
   const exploreToggle = $("explore-toggle");
   const hint = doc.createElement("p");
   hint.className = "explore-hint mono";
-  hint.textContent = COARSE ? "Swipe sideways to look around · scroll to dive · tap an animal to talk" : "Drag to look around · scroll to dive · drag an animal to move it · click one to talk · Esc to return";
+  hint.textContent = COARSE
+    ? t("Swipe sideways to look around · scroll to dive · tap an animal to talk", "左右滑动环顾四周 · 滚动下潜 · 轻点生物聊天")
+    : t("Drag to look around · scroll to dive · drag an animal to move it · click one to talk · Esc to return", "拖动环顾四周 · 滚动下潜 · 拖动生物可移动它 · 点击与它聊天 · 按 Esc 返回");
   hud.appendChild(hint);
   function setExplore(on) {
     S.explore = on;
@@ -765,14 +775,14 @@
       else if (e.key === "Home") { setSpin(false, true); D.lookHome(); e.preventDefault(); }
     });
 
-    const NAMES = ["forward", "right", "behind", "left"];
+    const NAMES = D.zh ? ["前方", "右侧", "后方", "左侧"] : ["forward", "right", "behind", "left"];
     let shown = "";
     D.onAfter(function () {
       // the ring carries a mark for "forward", so it reads like a compass
       ring.style.transform = "rotate(" + (S.look.yaw * 180 / Math.PI).toFixed(1) + "deg)";
       let deg = (-S.look.yaw * 180 / Math.PI) % 360;
       if (deg < 0) deg += 360;
-      const name = "Facing " + NAMES[Math.round(deg / 90) % 4];
+      const name = t("Facing ", "朝向") + NAMES[Math.round(deg / 90) % 4];
       if (name !== shown) { shown = name; pad.setAttribute("aria-valuetext", name); }
       // hold still while someone is being talked to, picked up or pointed at
       S.spinHold = !!(chat.current || hovered || (down && down.mode));
@@ -847,12 +857,12 @@
   (function roster() {
     const nav = doc.createElement("nav");
     nav.className = "sr";
-    nav.setAttribute("aria-label", "Talk to the animals");
+    nav.setAttribute("aria-label", t("Talk to the animals", "和海洋生物聊天"));
     nav.style.pointerEvents = "auto";
     data.list.forEach(function (spec) {
       const b = doc.createElement("button");
       b.type = "button";
-      b.textContent = "Talk to " + spec.name + ", the " + spec.common.toLowerCase();
+      b.textContent = D.zh ? "和 " + spec.name + "（" + spec.common + "）聊天" : "Talk to " + spec.name + ", the " + spec.common.toLowerCase();
       b.addEventListener("click", function () {
         const c = D.creature(spec.id);
         if (!c) return;

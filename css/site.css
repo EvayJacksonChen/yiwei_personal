@@ -2036,3 +2036,16 @@ html.no-gl .viewpad { display: none; }
 }
 .edge-cue.left::after { left: 1rem; transform: translateY(-50%) rotate(45deg); }
 .edge-cue.right::after { right: 1rem; transform: translateY(-50%) rotate(225deg); }
+
+/* ---------- Chinese page: small labels need a little more size than Latin caps ---------- */
+
+:lang(zh) .mono { letter-spacing: 0.06em; }
+:lang(zh) .kicker { font-size: 0.78rem; }
+:lang(zh) .zone-meta { font-size: 0.74rem; }
+:lang(zh) .gauge-label, :lang(zh) .gauge-zone, :lang(zh) .gauge-data { font-size: 0.64rem; }
+:lang(zh) .vision-toggle { font-size: 0.74rem; }
+:lang(zh) .portrait-hint, :lang(zh) .weather-tag, :lang(zh) .project-tags li, :lang(zh) .flags strong, :lang(zh) .hero-cta-tag { font-size: 0.7rem; }
+:lang(zh) .venue, :lang(zh) .label, :lang(zh) .foot-mark, :lang(zh) .resurface, :lang(zh) .dive, :lang(zh) .project-cta { font-size: 0.76rem; }
+:lang(zh) .explore-hint, :lang(zh) .who small, :lang(zh) .chat-meta, :lang(zh) .scan-title .mono { font-size: 0.7rem; }
+:lang(zh) .chat-via { font-size: 0.62rem; }
+:lang(zh) .lining { letter-spacing: 0.02em; }

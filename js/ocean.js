@@ -9,6 +9,9 @@
   const T = window.THREE;
   const D = (window.DIVE = window.DIVE || {});
   const canvas = document.getElementById("ocean");
+  // The same scripts serve the English and the Chinese page; the page's language picks the words.
+  D.zh = /^zh/i.test(document.documentElement.lang || "");
+  D.t = function (en, zh) { return D.zh ? zh : en; };
   if (!T || !canvas) return;
 
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
